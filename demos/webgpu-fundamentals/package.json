@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "vite": "^5.3.4"
+  },
+  "dependencies": {
+    "muigui": "^0.0.21"
   }
 }
