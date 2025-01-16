@@ -16,7 +16,8 @@
 
 body {
   margin: 0;
-  display: flex;
+  /* display: flex;
+  flex-direction: column; */
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
@@ -25,8 +26,9 @@ body {
 canvas {
   display: block;
   width: 100%;
+  max-width: 512px;
   height: 100%;
-  aspect-ratio: 3/2;
+  /* aspect-ratio: 3/2;
   image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  image-rendering: crisp-edges; */
 }
