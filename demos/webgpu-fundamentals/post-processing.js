@@ -1,6 +1,7 @@
 // see https://webgpufundamentals.org/webgpu/lessons/webgpu-utils.html#wgpu-matrix
 import { mat4 } from 'https://webgpufundamentals.org/3rdparty/wgpu-matrix.module.js';
 // import { bwChunkCompute } from './bw-compute.wgsl';
+import GUI from 'muigui'
 
 
 const range = (i, fn) => new Array(i).fill(0).map((_, i) => fn(i));
@@ -40,23 +41,58 @@ async function main() {
     //     label: 'bw shader',
     //     code: `${bwChunkCompute.toString()}`,
     // });
-    const bwChunkModule = device.createShaderModule({
-        label: 'bw shader',
+    const settings = {
+        frameInterval: 5,
+        weights: {
+            currentFrame: 0.4,
+            frame0: 0.3,
+            frame1: 0.15,
+            frame2: 0.1,
+            frame3: 0.05,
+        }
+    };
+
+    const gui = new GUI();
+    gui.add(settings, 'frameInterval', 1, 120, 1).name('Frame Interval');
+    const weightsFolder = gui.addFolder('Blend Weights');
+    weightsFolder.add(settings.weights, 'currentFrame', 0, 1, 0.05).name('Current Frame');
+    weightsFolder.add(settings.weights, 'frame0', 0, 1, 0.05).name('5 Frames Ago');
+    weightsFolder.add(settings.weights, 'frame1', 0, 1, 0.05).name('10 Frames Ago');
+    weightsFolder.add(settings.weights, 'frame2', 0, 1, 0.05).name('15 Frames Ago');
+    weightsFolder.add(settings.weights, 'frame3', 0, 1, 0.05).name('20 Frames Ago');
+
+    // Create a uniform buffer for our settings
+    const settingsBuffer = device.createBuffer({
+        size: 24, // 1 uint + 5 floats = 24 bytes
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const motionBlurModule = device.createShaderModule({
+        label: 'motion blur shader',
         code: `
         ${sharedConstants}
 
+        struct Settings {
+            frameInterval: u32,
+            currentFrameWeight: f32,
+            frame0Weight: f32,
+            frame1Weight: f32,
+            frame2Weight: f32,
+            frame3Weight: f32,
+        };
+
         struct Chunk {
-            pixels: array<vec4f, ${chunkSize}>
+            frame0: array<vec4f, ${chunkSize}>,  // Most recent saved frame
+            frame1: array<vec4f, ${chunkSize}>,
+            frame2: array<vec4f, ${chunkSize}>,
+            frame3: array<vec4f, ${chunkSize}>   // Oldest saved frame
         };
 
         @group(0) @binding(0) var ourTexture: texture_external;
         @group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
         @group(0) @binding(2) var<storage, read_write> chunks: array<Chunk>;
-
-        const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
-        fn srgbLuminance(color: vec3f) -> f32 {
-            return saturate(dot(color, kSRGBLuminanceFactors));
-        }
+        @group(0) @binding(3) var<storage, read_write> frameCounter: array<u32, 1>;
+        @group(0) @binding(4) var<uniform> settings: Settings;
 
         @compute @workgroup_size(chunkWidth, chunkHeight, 1)
         fn cs(
@@ -68,31 +104,44 @@ async function main() {
             let position = global_id.xy;
 
             if (all(position < size)) {
-            var color = textureLoad(ourTexture, position);
+                let chunk_idx = workgroup_id.y * (size.x / chunkWidth) + workgroup_id.x;
+                let pixel_idx = local_id.y * chunkWidth + local_id.x;
+                
+                let currentColor = textureLoad(ourTexture, position);
+                
+                // Update frame counter with single thread
+                if (global_id.x == 0u && global_id.y == 0u) {
+                    frameCounter[0] = frameCounter[0] + 1u;
+                }
 
-        // Check if the pixel is in the left half of the video
-        // if (position.x < size.x / 2u) {
-            //check if the pixel is red
-            if (color.r > color.g && color.r > color.b) {
-                let luminance = srgbLuminance(color.rgb);
-                color = vec4f(luminance, luminance, luminance, color.a);
+                // Store frames every N frames, for all pixels
+                if (frameCounter[0] % settings.frameInterval == 0u) {
+                    let prev0 = chunks[chunk_idx].frame0[pixel_idx];
+                    let prev1 = chunks[chunk_idx].frame1[pixel_idx];
+                    let prev2 = chunks[chunk_idx].frame2[pixel_idx];
+
+                    chunks[chunk_idx].frame3[pixel_idx] = prev2;
+                    chunks[chunk_idx].frame2[pixel_idx] = prev1;
+                    chunks[chunk_idx].frame1[pixel_idx] = prev0;
+                    chunks[chunk_idx].frame0[pixel_idx] = currentColor;
+                }
+                
+                let prev0 = chunks[chunk_idx].frame0[pixel_idx];
+                let prev1 = chunks[chunk_idx].frame1[pixel_idx];
+                let prev2 = chunks[chunk_idx].frame2[pixel_idx];
+                let prev3 = chunks[chunk_idx].frame3[pixel_idx];
+
+                let blendedColor = currentColor * settings.currentFrameWeight +
+                                  prev0 * settings.frame0Weight +
+                                  prev1 * settings.frame1Weight +
+                                  prev2 * settings.frame2Weight +
+                                  prev3 * settings.frame3Weight;
+
+                textureStore(outputTexture, position, blendedColor);
             }
-        //}
-
-        // Store in chunk
-        let chunk_idx = workgroup_id.y * (size.x / chunkWidth) + workgroup_id.x;
-        let pixel_idx = local_id.y * chunkWidth + local_id.x;
-        chunks[chunk_idx].pixels[pixel_idx] = color;
-
-
-        // Write to output texture
-            textureStore(outputTexture, position, color);
         }
-         }
         `,
     });
-
-
 
     const videoModule = device.createShaderModule({
         label: 'our hardcoded textured quad shaders',
@@ -143,11 +192,11 @@ async function main() {
     `,
     });
 
-    const bwChunkPipeline = device.createComputePipeline({
-        label: ' bw',
+    const motionBlurPipeline = device.createComputePipeline({
+        label: 'motion blur',
         layout: 'auto',
         compute: {
-            module: bwChunkModule,
+            module: motionBlurModule,
         },
     });
 
@@ -245,9 +294,23 @@ async function main() {
 
 
     const chunksBuffer = device.createBuffer({
-        size: numChunks * chunkSize * 4 * 4, // vec4f per pixel
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        size: numChunks * chunkSize * 4 * 4 * 4, // 4 frames * vec4f per pixel
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
+
+    // Initialize the chunks buffer with zeros
+    const initialData = new Float32Array(numChunks * chunkSize * 4 * 4); // 4 frames * 4 components per pixel
+    device.queue.writeBuffer(chunksBuffer, 0, initialData);
+
+    // Create a buffer for the frame counter
+    const frameCounterBuffer = device.createBuffer({
+        size: 4, // Single u32
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    // Initialize frame counter to 0
+    const frameCounterInit = new Uint32Array([0]);
+    device.queue.writeBuffer(frameCounterBuffer, 0, frameCounterInit);
 
     function render() {
         const texture = device.importExternalTexture({ source: video });
@@ -258,20 +321,34 @@ async function main() {
             usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
         });
 
-        const bwBindGroup = device.createBindGroup({
-            layout: bwChunkPipeline.getBindGroupLayout(0),
+        // Update settings buffer
+        const settingsData = new ArrayBuffer(24);
+        const settingsDataView = new DataView(settingsData);
+        settingsDataView.setUint32(0, settings.frameInterval, true);
+        settingsDataView.setFloat32(4, settings.weights.currentFrame, true);
+        settingsDataView.setFloat32(8, settings.weights.frame0, true);
+        settingsDataView.setFloat32(12, settings.weights.frame1, true);
+        settingsDataView.setFloat32(16, settings.weights.frame2, true);
+        settingsDataView.setFloat32(20, settings.weights.frame3, true);
+        device.queue.writeBuffer(settingsBuffer, 0, settingsData);
+
+        // Update bind group to include settings buffer
+        const motionBlurBindGroup = device.createBindGroup({
+            layout: motionBlurPipeline.getBindGroupLayout(0),
             entries: [
                 { binding: 0, resource: texture },
                 { binding: 1, resource: outputTexture.createView() },
                 { binding: 2, resource: { buffer: chunksBuffer } },
+                { binding: 3, resource: { buffer: frameCounterBuffer } },
+                { binding: 4, resource: { buffer: settingsBuffer } },
             ],
         });
 
         const encoder = device.createCommandEncoder({ label: 'video post-proc encoder' });
         {
             const pass = encoder.beginComputePass();
-            pass.setPipeline(bwChunkPipeline);
-            pass.setBindGroup(0, bwBindGroup);
+            pass.setPipeline(motionBlurPipeline);
+            pass.setBindGroup(0, motionBlurBindGroup);
             pass.dispatchWorkgroups(
                 Math.ceil(video.videoWidth / k.chunkWidth),
                 Math.ceil(video.videoHeight / k.chunkHeight)
