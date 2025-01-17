@@ -26,7 +26,7 @@ body {
 canvas {
   display: block;
   width: 100%;
-  max-width: 512px;
+  max-width: 1000px;
   height: 100%;
   /* aspect-ratio: 3/2;
   image-rendering: pixelated;
