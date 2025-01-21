@@ -11,13 +11,19 @@ export default function Experience()
 {
     return <>
         <Perf position="top-left" />
-        <OrbitControls makeDefault />
+        <OrbitControls 
+            enablePan={ false }
+            enableZoom={ false }
+            maxPolarAngle={ Math.PI / 2 }
+            minPolarAngle={ Math.PI / 2 }
+            maxAzimuthAngle={ Math.PI / 2 }
+            minAzimuthAngle={ -Math.PI / 2 }
+            makeDefault 
+        />
         <Physics debug={ true }>
             <Lights />
             <Corridor />
             <Player />
         </Physics>
-
-
     </>
 }

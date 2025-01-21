@@ -10,8 +10,12 @@ export default function Player() {
     const [ subscribeKeys, getKeys ] = useKeyboardControls()
     const { rapier, world } = useRapier()
 
-    const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(10,10,10))  
-    const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3())  
+    const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(0,0.65,2.25))  
+    const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3(0, 0.25, -2.25))
+    const [ previousCamera ] = useState(() => {})
+    // const [ previousCameraPosition ] = useState(() => new THREE.Vector3(0,0.65,2.25))
+    // const [ previousCameraTarget ] = useState(() => new THREE.Vector3(0, 0.25, -2.25))
+    const [ deltaTime, setDeltaTime ] = useState(0)
 
     const jump = () => {
         const origin = body.current.translation()
@@ -20,7 +24,6 @@ export default function Player() {
 
         const ray = new rapier.Ray(origin, direction)
         const hit = world.castRay(ray, 10, true)
-        console.log(hit.timeOfImpact)
 
         if( hit.timeOfImpact < 0.15 ) {
             body.current.applyImpulse({ x: 0, y: 0.15, z: 0 })
@@ -45,13 +48,22 @@ export default function Player() {
     }, [])
 
     useFrame((state, delta) => {
+    
+        /**
+         * Getting current camera
+         */
+        const currentCamera = state.camera
 
+        // console.log(currentCameraTarget)
+
+    
         /**
          * Controls
          */
-        const { forward, backward, left, right } = getKeys()
+        const { forward, backward, left, right, jump } = getKeys()
 
         const impulse = { x: 0, y: 0, z: 0 }
+        const cameraRotation = { x: 0, y: 0, z: 0 }
 
 
         const impulseStrength = 0.1 * delta
@@ -64,36 +76,68 @@ export default function Player() {
             }
         if (left) {
                 impulse.x -= impulseStrength
+                // cameraRotation.x -= 1.5
             }
         if (right) {
                 impulse.x += impulseStrength
+                // cameraRotation.x += 1.5
             }
             
-
         body.current.applyImpulse(impulse)
 
 
         /**
          * Camera
          */
-        const bodyPosition = body.current.translation()
 
-        const cameraPosition = new THREE.Vector3()
-        cameraPosition.copy(bodyPosition)
-        cameraPosition.z += 2.25
-        cameraPosition.y += 0.65
+      //  if (forward || backward || left || right || jump) {
+            const bodyPosition = body.current.translation()
 
-        const cameraTarget = new THREE.Vector3()
-        cameraTarget.copy(bodyPosition)
-        cameraTarget.y += 0.25
-        cameraTarget.z -= 2.25
+            const cameraPosition = new THREE.Vector3()
+            cameraPosition.copy(bodyPosition)
+            cameraPosition.z += 2.25
+            cameraPosition.y += 0.65
+
+            const cameraTarget = new THREE.Vector3()
+            cameraTarget.copy(bodyPosition)
+            cameraTarget.y += 0.25 
+            cameraTarget.z -= 2.25
+            cameraTarget.x += cameraRotation.x
+
         
-        smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
-        smoothedCameraTarget.lerp(cameraTarget, 5 * delta )
+            smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
+            smoothedCameraTarget.lerp(cameraTarget, 5 * delta )
+            state.camera.position.copy(smoothedCameraPosition)
+            state.camera.lookAt(smoothedCameraTarget)
 
-        state.camera.position.copy(smoothedCameraPosition)
-        state.camera.lookAt(smoothedCameraTarget)
+            // previousCamera.copy(currentCamera)
 
+            //saving this position and target
+            // previousCameraPosition.copy(smoothedCameraPosition)
+            // previousCameraTarget.copy(smoothedCameraTarget)
+            setDeltaTime(0)
+            // console.log("previousCameraPosition", previousCameraPosition)
+            // console.log("state.camera.position", state.camera.position)
+            // console.log("currentCamera", currentCamera)
+      //  } 
+        // else {
+        //     //have we stopped moving just now?
+        //     if (deltaTime < 0.1) {
+        //         // smoothedCameraPosition.lerp(previousCameraPosition, 5 * delta)
+        //         // smoothedCameraTarget.lerp(previousCameraTarget, 5 * delta)
+        //         // if (previousCamera) {
+        //         //     state.camera.copy(previousCamera)
+        //         // }
+        //         setDeltaTime(0)
+        //         console.log(deltaTime)
+        //         // console.log("currentCamera after we stopped", currentCamera)
+        //         // console.log("state.camera.position after we stopped", state.camera.position)
+
+        //     }
+        //     // console.log("currentCamera after we stopped and orbit controls are enabled", currentCamera)
+        //     setDeltaTime(deltaTime + delta)
+        // }
+  
     })
 
     return <RigidBody 
@@ -104,7 +148,7 @@ export default function Player() {
         friction={ 1 } 
         linearDamping={ 0.5}
         angularDamping={ 0.5 }
-        position={ [0, 1, 0] }
+        position={ [0, 1, -0.5] }
     >
         <mesh castShadow>
             <capsuleGeometry args={ [0.1, 0.15, 10, 12 ] } />
