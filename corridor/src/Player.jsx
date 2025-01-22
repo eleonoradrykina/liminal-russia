@@ -4,7 +4,7 @@ import { useKeyboardControls} from '@react-three/drei'
 import { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
 
-export default function Player() {
+export default function Player({ orbitControlsRef }) {
 
     const body = useRef()
     const [ subscribeKeys, getKeys ] = useKeyboardControls()
@@ -56,7 +56,6 @@ export default function Player() {
 
         // console.log(currentCameraTarget)
 
-    
         /**
          * Controls
          */
@@ -90,7 +89,7 @@ export default function Player() {
          * Camera
          */
 
-      //  if (forward || backward || left || right || jump) {
+       if (forward || backward || left || right || jump) {
             const bodyPosition = body.current.translation()
 
             const cameraPosition = new THREE.Vector3()
@@ -110,6 +109,10 @@ export default function Player() {
             state.camera.position.copy(smoothedCameraPosition)
             state.camera.lookAt(smoothedCameraTarget)
 
+            orbitControlsRef.current.target.set(smoothedCameraTarget.x, smoothedCameraTarget.y, smoothedCameraTarget.z)
+            
+            orbitControlsRef.current.update()
+
             // previousCamera.copy(currentCamera)
 
             //saving this position and target
@@ -119,24 +122,24 @@ export default function Player() {
             // console.log("previousCameraPosition", previousCameraPosition)
             // console.log("state.camera.position", state.camera.position)
             // console.log("currentCamera", currentCamera)
-      //  } 
-        // else {
-        //     //have we stopped moving just now?
-        //     if (deltaTime < 0.1) {
-        //         // smoothedCameraPosition.lerp(previousCameraPosition, 5 * delta)
-        //         // smoothedCameraTarget.lerp(previousCameraTarget, 5 * delta)
-        //         // if (previousCamera) {
-        //         //     state.camera.copy(previousCamera)
-        //         // }
-        //         setDeltaTime(0)
-        //         console.log(deltaTime)
-        //         // console.log("currentCamera after we stopped", currentCamera)
-        //         // console.log("state.camera.position after we stopped", state.camera.position)
+        } 
+        else {
+            //have we stopped moving just now?
+            if (deltaTime < 0.1) {
+                // smoothedCameraPosition.lerp(previousCameraPosition, 5 * delta)
+                // smoothedCameraTarget.lerp(previousCameraTarget, 5 * delta)
+                // if (previousCamera) {
+                //     state.camera.copy(previousCamera)
+                // }
+                setDeltaTime(0)
+                console.log(deltaTime)
+                // console.log("currentCamera after we stopped", currentCamera)
+                // console.log("state.camera.position after we stopped", state.camera.position)
 
-        //     }
-        //     // console.log("currentCamera after we stopped and orbit controls are enabled", currentCamera)
-        //     setDeltaTime(deltaTime + delta)
-        // }
+            }
+            // console.log("currentCamera after we stopped and orbit controls are enabled", currentCamera)
+            setDeltaTime(deltaTime + delta)
+        }
   
     })
 
