@@ -18,18 +18,7 @@ export default function Experience()
         <EffectComposer>
         <Bloom luminanceThreshold={0.9} mipmapBlur intensity={1.0} />
         <ToneMapping />
-      </EffectComposer>
-        <OrbitControls 
-            ref={ orbitControlsRef }
-            enablePan={ false }
-            enableZoom={ false }
-            maxPolarAngle={ Math.PI / 2 }
-            minPolarAngle={ Math.PI / 2 }
-            maxAzimuthAngle={ Math.PI / 2 }
-            minAzimuthAngle={ -Math.PI / 2 }
-            makeDefault 
-            
-        />
+        </EffectComposer>
         <Physics debug={ true }>
             <Lights />
             <Corridor />

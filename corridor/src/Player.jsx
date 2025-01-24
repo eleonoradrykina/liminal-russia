@@ -1,21 +1,20 @@
 import { RigidBody, useRapier } from '@react-three/rapier'
 import { useFrame } from '@react-three/fiber'
-import { useKeyboardControls} from '@react-three/drei'
+import { useKeyboardControls, PerspectiveCamera } from '@react-three/drei'
 import { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
 
 export default function Player({ orbitControlsRef }) {
 
     const body = useRef()
+    const camera = useRef()
+    const radius = 2.5
     const [ subscribeKeys, getKeys ] = useKeyboardControls()
     const { rapier, world } = useRapier()
 
-    const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(0,0.65,2.25))  
+    const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(0, 0.65, 2.25))  
     const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3(0, 0.25, -2.25))
-    const [ previousCamera ] = useState(() => {})
-    // const [ previousCameraPosition ] = useState(() => new THREE.Vector3(0,0.65,2.25))
-    // const [ previousCameraTarget ] = useState(() => new THREE.Vector3(0, 0.25, -2.25))
-    const [ deltaTime, setDeltaTime ] = useState(0)
+    const [ angle, setAngle ] = useState(0)
 
     const jump = () => {
         const origin = body.current.translation()
@@ -50,100 +49,55 @@ export default function Player({ orbitControlsRef }) {
     useFrame((state, delta) => {
     
         /**
-         * Getting current camera
-         */
-        const currentCamera = state.camera
-
-        // console.log(currentCameraTarget)
-
-        /**
          * Controls
          */
         const { forward, backward, left, right, jump } = getKeys()
 
-        const impulse = { x: 0, y: 0, z: 0 }
-        const cameraRotation = { x: 0, y: 0, z: 0 }
-
-
         const impulseStrength = 0.1 * delta
 
+        const direction = new THREE.Vector3()
+
         if (forward) {
-                impulse.z -= impulseStrength
+            direction.x = -Math.cos(angle) * impulseStrength
+            direction.z = -Math.sin(angle) * impulseStrength
             }
         if (backward) {
-                impulse.z += impulseStrength
+            direction.x = Math.cos(angle) * impulseStrength
+            direction.z = Math.sin(angle) * impulseStrength
             }
         if (left) {
-                impulse.x -= impulseStrength
-                // cameraRotation.x -= 1.5
+            setAngle(angle - 0.3*delta)
             }
         if (right) {
-                impulse.x += impulseStrength
-                // cameraRotation.x += 1.5
+            setAngle(angle + 0.3*delta)
             }
-            
-        body.current.applyImpulse(impulse)
+        
+        body.current.applyImpulse(direction)
 
 
         /**
          * Camera
          */
+        const bodyPosition = body.current.translation()
 
-       if (forward || backward || left || right || jump) {
-            const bodyPosition = body.current.translation()
+        const cameraPosition = new THREE.Vector3()
+        cameraPosition.x = bodyPosition.x + Math.cos(angle) * radius
+        cameraPosition.y = bodyPosition.y + 0.5
+        cameraPosition.z = bodyPosition.z + Math.sin(angle) * radius
 
-            const cameraPosition = new THREE.Vector3()
-            cameraPosition.copy(bodyPosition)
-            cameraPosition.z += 2.25
-            cameraPosition.y += 0.65
-
-            const cameraTarget = new THREE.Vector3()
-            cameraTarget.copy(bodyPosition)
-            cameraTarget.y += 0.25 
-            cameraTarget.z -= 2.25
-            cameraTarget.x += cameraRotation.x
-
+        const cameraTarget = new THREE.Vector3()
+        cameraTarget.copy(bodyPosition)
         
-            smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
-            smoothedCameraTarget.lerp(cameraTarget, 5 * delta )
-            state.camera.position.copy(smoothedCameraPosition)
-            state.camera.lookAt(smoothedCameraTarget)
+        smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
+        smoothedCameraTarget.lerp(cameraTarget, 5 * delta )
 
-            orbitControlsRef.current.target.set(smoothedCameraTarget.x, smoothedCameraTarget.y, smoothedCameraTarget.z)
-            
-            orbitControlsRef.current.update()
+        state.camera.position.copy(smoothedCameraPosition)
+        state.camera.lookAt(smoothedCameraTarget)
 
-            // previousCamera.copy(currentCamera)
-
-            //saving this position and target
-            // previousCameraPosition.copy(smoothedCameraPosition)
-            // previousCameraTarget.copy(smoothedCameraTarget)
-            setDeltaTime(0)
-            // console.log("previousCameraPosition", previousCameraPosition)
-            // console.log("state.camera.position", state.camera.position)
-            // console.log("currentCamera", currentCamera)
-        } 
-        else {
-            //have we stopped moving just now?
-            if (deltaTime < 0.1) {
-                // smoothedCameraPosition.lerp(previousCameraPosition, 5 * delta)
-                // smoothedCameraTarget.lerp(previousCameraTarget, 5 * delta)
-                // if (previousCamera) {
-                //     state.camera.copy(previousCamera)
-                // }
-                setDeltaTime(0)
-                console.log(deltaTime)
-                // console.log("currentCamera after we stopped", currentCamera)
-                // console.log("state.camera.position after we stopped", state.camera.position)
-
-            }
-            // console.log("currentCamera after we stopped and orbit controls are enabled", currentCamera)
-            setDeltaTime(deltaTime + delta)
-        }
-  
     })
 
-    return <RigidBody 
+    return <>
+    <RigidBody 
         ref={ body }
         canSleep={false} 
         colliders="ball" 
@@ -165,4 +119,7 @@ export default function Player({ orbitControlsRef }) {
                 />
         </mesh>
     </RigidBody>
+
+    </>
+
 }

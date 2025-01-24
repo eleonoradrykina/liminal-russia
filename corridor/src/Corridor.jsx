@@ -164,7 +164,7 @@ export default function Corridor() {
         <Floor size={ 16 }/>
         {/* GROUP A*/}
         <WallHorizontal position={ [-9.7, 0.75, -4] } length = {12} />
-        <WallVertical position={ [-3.85, 0.75, -8.0] }length = {8}/>
+        <WallVertical position={ [-3.85, 0.75, -8.15] }length = {8}/>
 
         {/* GROUP B*/}
         <WallHorizontal position={ [-7.0, 0.75, -20] }length = {10 } />
@@ -179,6 +179,6 @@ export default function Corridor() {
         <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/>
 
         <BoundsForward length={ 16} />
-        <Ceiling size={ 16 }/>
+        {/* <Ceiling size={ 16 }/> */}
     </>
 }
