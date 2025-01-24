@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
-import { useGLTF } from '@react-three/drei'
+import { useControls } from 'leva'
+
+
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
@@ -10,6 +12,8 @@ import wallpaperVertexShader from './shaders/wallpaper/vert.glsl'
 import wallpaperFragmentShader from './shaders/wallpaper/frag.glsl'
 import ceilingVertexShader from './shaders/ceiling/vert.glsl'
 import ceilingFragmentShader from './shaders/ceiling/frag.glsl'
+import carpetVertexShader from './shaders/carpet/vert.glsl'
+import carpetFragmentShader from './shaders/carpet/frag.glsl'
 
 const boxGeometry = new THREE.BoxGeometry(1,1,1)
 
@@ -30,12 +34,56 @@ export function BlockStart({ position = [ 0, 0, 0 ] }) {
 }
 
 function Floor({size = 16}) {
+    const materialRef = useRef()
+    const { freq } = useControls({
+        freq: { value: 0.005, min: 0.001, max: 0.1, step: 0.001 }
+    })
+    const { strength } = useControls({
+        strength: { value: 0.3, min: 0.0, max: 2.0, step: 0.01 }
+    })
+    const { tile } = useControls({
+        tile: { value: 1.0, min: 0.0, max: 1.0, step: 0.01 }
+    })
+    const { scale } = useControls({
+        scale: { value: 2000.0, min: 0.0, max: 5000.0, step: 0.01 }
+    })
+    const { threshold } = useControls({
+        threshold: { value: 0.75, min: 0.0, max: 1.0, step: 0.01 }
+    })
+
+    useFrame((state) => {
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
+            materialRef.current.uniforms.strength.value = strength
+            materialRef.current.uniforms.freq.value = freq
+            materialRef.current.uniforms.tile.value = tile
+            materialRef.current.uniforms.scale.value = scale
+            materialRef.current.uniforms.threshold.value = threshold
+        }
+    })
+
     return <mesh geometry = {boxGeometry}
         position={ [0, -0.5, -size + 2] } 
         scale = { [size * 2, 0.2, size * 2] }
         receiveShadow
-        material ={ floorMaterial }
-       />
+       >
+        <CustomShaderMaterial
+            ref={materialRef}   
+            baseMaterial={THREE.MeshPhysicalMaterial}
+            vertexShader={carpetVertexShader} 
+            fragmentShader={carpetFragmentShader} 
+            uniforms={{
+                uTime: { value: 0 },
+                freq: { value: freq },
+                strength: { value: strength },
+                tile: { value: tile },
+                scale: { value: scale },
+                threshold: { value: threshold },
+                }}
+            flatShading
+            color={'#F2E1AF'}
+        />
+    </mesh>
 }
 
 function Ceiling({size = 16}) {
@@ -123,28 +171,34 @@ function WallHorizontal({position = [0, 0, 0], length=14}) {
         }
     })
 
-    return <RigidBody type="fixed" restitution={0.2} friction={0}>
-            <mesh geometry = {boxGeometry}
-                position={ position } 
-                scale = { [length, 2.5, 0.3] }
-                receiveShadow>
+    return <>
 
-                <CustomShaderMaterial
-                    ref={materialRef}   
-                    baseMaterial={THREE.MeshPhysicalMaterial}
-                    vertexShader={wallpaperVertexShader} 
-                    fragmentShader={wallpaperFragmentShader} 
-                    uniforms={{
-                        uTime: { value: 0 },
-                        aspectRatio: { value: length / 2.5 },
-        
-                    }}
-                    // Base material properties
-                    flatShading
-                    color={0x968D24}
-                />
-            </mesh>
-        </RigidBody>
+  
+        <RigidBody type="fixed" restitution={0.2} friction={0}>
+                <mesh geometry = {boxGeometry}
+                    position={ position } 
+                    scale = { [length, 2.5, 0.3] }
+                    receiveShadow
+                    castShadow
+                >
+
+                    <CustomShaderMaterial
+                        ref={materialRef}   
+                        baseMaterial={THREE.MeshPhysicalMaterial}
+                        vertexShader={wallpaperVertexShader} 
+                        fragmentShader={wallpaperFragmentShader} 
+                        uniforms={{
+                            uTime: { value: 0 },
+                            aspectRatio: { value: length / 2.5 },
+            
+                        }}
+                        // Base material properties
+                        flatShading
+                        color={0x968D24}
+                    />
+                </mesh>
+            </RigidBody>
+          </>
 }
 
 function WallVertical({position = [0, 0, 0], length=14}) {
@@ -154,6 +208,7 @@ function WallVertical({position = [0, 0, 0], length=14}) {
                 scale = { [0.3, 2.5, length] }
                 material ={ wallMaterial2 }
                 receiveShadow
+                castShadow
             />
         </RigidBody>
 }
@@ -179,6 +234,6 @@ export default function Corridor() {
         <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/>
 
         <BoundsForward length={ 16} />
-        {/* <Ceiling size={ 16 }/> */}
+        <Ceiling size={ 16 }/>
     </>
 }

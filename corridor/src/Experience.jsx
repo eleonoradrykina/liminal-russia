@@ -19,7 +19,7 @@ export default function Experience()
         <Bloom luminanceThreshold={0.9} mipmapBlur intensity={1.0} />
         <ToneMapping />
         </EffectComposer>
-        <Physics debug={ true }>
+        <Physics debug={ false }>
             <Lights />
             <Corridor />
             <Player orbitControlsRef={ orbitControlsRef } />
