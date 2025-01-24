@@ -158,6 +158,7 @@ function Bounds({ length = 8}) {
                         uniforms={{
                             uTime: { value: 0 },
                             aspectRatio: { value: length * 2 / 2.5 },
+                            
                             offset: { value: offset },
                         }}
                         // Base material properties

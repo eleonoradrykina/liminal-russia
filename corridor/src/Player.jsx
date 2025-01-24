@@ -87,6 +87,9 @@ export default function Player({ orbitControlsRef }) {
 
         const cameraTarget = new THREE.Vector3()
         cameraTarget.copy(bodyPosition)
+
+        // look a bit up
+        cameraTarget.y += 0.25
         
         smoothedCameraPosition.lerp(cameraPosition, 5 * delta)
         smoothedCameraTarget.lerp(cameraTarget, 5 * delta )

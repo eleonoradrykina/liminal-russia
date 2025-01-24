@@ -32,8 +32,9 @@ void main() {
     vec3 redColor = vec3(0.5, 0.1, 0.0);
 
     float barWidthRed = 0.025;
-    // float offset = ;
-    float redBar1 = step(barWidthRed, mod((uv.x + offset) * gridSize, 1.0));
+    // float offset = 0.25;
+
+    float redBar1 = step(barWidthRed, mod((uv.x) * gridSize, 1.0));
     float redBar2 = step(barWidthRed, mod((uv.x - offset) * gridSize, 1.0));
 
     float redBar = min(redBar1, redBar2);
