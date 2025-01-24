@@ -10,6 +10,8 @@ import CustomShaderMaterial from 'three-custom-shader-material'
 
 import wallpaperVertexShader from './shaders/wallpaper/vert.glsl'
 import wallpaperFragmentShader from './shaders/wallpaper/frag.glsl'
+import wallpaper2VertexShader from './shaders/wallpaper2/vert.glsl'
+import wallpaper2FragmentShader from './shaders/wallpaper2/frag.glsl'
 import ceilingVertexShader from './shaders/ceiling/vert.glsl'
 import ceilingFragmentShader from './shaders/ceiling/frag.glsl'
 import carpetVertexShader from './shaders/carpet/vert.glsl'
@@ -39,16 +41,16 @@ function Floor({size = 16}) {
         freq: { value: 0.005, min: 0.001, max: 0.1, step: 0.001 }
     })
     const { strength } = useControls({
-        strength: { value: 0.3, min: 0.0, max: 2.0, step: 0.01 }
+        strength: { value: 0.15, min: 0.0, max: 2.0, step: 0.01 }
     })
     const { tile } = useControls({
         tile: { value: 1.0, min: 0.0, max: 1.0, step: 0.01 }
     })
     const { scale } = useControls({
-        scale: { value: 2000.0, min: 0.0, max: 5000.0, step: 0.01 }
+        scale: { value: 2500.0, min: 0.0, max: 5000.0, step: 0.01 }
     })
     const { threshold } = useControls({
-        threshold: { value: 0.75, min: 0.0, max: 1.0, step: 0.01 }
+        threshold: { value: 0.01, min: 0.0, max: 1.0, step: 0.01 }
     })
 
     useFrame((state) => {
@@ -119,7 +121,19 @@ function Ceiling({size = 16}) {
         </mesh>
 }
 
-function BoundsForward({ length = 8}) {
+function Bounds({ length = 8}) {
+
+    const materialRef = useRef()
+    const { offset } = useControls({
+        offset: { value: 0.2125, min: 0.0, max: 1.0, step: 0.001 }
+    })
+
+    useFrame((state) => {
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
+            materialRef.current.uniforms.offset.value = offset
+        }
+    })
 
     return <>
         <RigidBody type="fixed" restitution={0.2} friction={0}>
@@ -135,15 +149,42 @@ function BoundsForward({ length = 8}) {
                 position={ [ -length + 0.15, 0.75, - (length) + 2] } 
                 scale = { [0.3, 2.5, length * 2] }
                 material ={ wallMaterial }
-                receiveShadow
-            />
+                receiveShadow>
+                    <CustomShaderMaterial
+                        ref={materialRef}   
+                        baseMaterial={THREE.MeshPhysicalMaterial}
+                        vertexShader={wallpaper2VertexShader} 
+                        fragmentShader={wallpaper2FragmentShader} 
+                        uniforms={{
+                            uTime: { value: 0 },
+                            aspectRatio: { value: length * 2 / 2.5 },
+                            offset: { value: offset },
+                        }}
+                        // Base material properties
+                        flatShading
+                        color={0x968D24}
+                    />
+            </mesh>
             {/* back wall */}
             <mesh geometry = {boxGeometry}
                 position={ [ 0, 0.75, - (length * 2) + 2] } 
                 scale = { [length * 2, 2.5, 0.3] }
-                material ={ wallMaterial }
-                receiveShadow
-            />
+                receiveShadow>
+                <CustomShaderMaterial
+                    ref={materialRef}   
+                    baseMaterial={THREE.MeshPhysicalMaterial}
+                    vertexShader={wallpaper2VertexShader} 
+                    fragmentShader={wallpaper2FragmentShader} 
+                    uniforms={{
+                        uTime: { value: 0 },
+                        aspectRatio: { value: length / 2.5 },
+                        offset: { value: offset },
+                    }}
+                    // Base material properties
+                    flatShading
+                    color={0x968D24}
+                    />
+            </mesh>
             {/* front wall */}
             <mesh geometry = {boxGeometry}
                 position={ [ 0, 0.75, 2] } 
@@ -233,7 +274,7 @@ export default function Corridor() {
         {/* GROUP D*/}
         <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/>
 
-        <BoundsForward length={ 16} />
+        <Bounds length={ 16} />
         <Ceiling size={ 16 }/>
     </>
 }

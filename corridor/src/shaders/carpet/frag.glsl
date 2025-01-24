@@ -17,6 +17,4 @@ void main() {
 
     vec3 color = mix(baseColor, darkColor, mask);
     csm_DiffuseColor = vec4(color, 1.0);
-
-
 }

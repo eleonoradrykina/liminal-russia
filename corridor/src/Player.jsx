@@ -112,7 +112,7 @@ export default function Player({ orbitControlsRef }) {
             <meshStandardMaterial 
                 flatShading
                 color="#1e1e1e"
-                opacity={ 0.9 }
+                opacity={ 0.98 }
                 transparent
                 roughness={ 0.1 }
                 metalness={ 0.7 }
