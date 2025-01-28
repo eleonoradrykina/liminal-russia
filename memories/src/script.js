@@ -1,13 +1,20 @@
 import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'
+import { sizes, handleResize, setScene, setRenderer } from './utils.js'
 import GUI from 'lil-gui'
+import CustomShaderMaterial from 'three-custom-shader-material/vanilla'
+
+
 import particlesVertexShader from './shaders/particles/vertex.glsl'
 import particlesFragmentShader from './shaders/particles/fragment.glsl'
 import gpgpuParticlesShader from './shaders/gpgpu/particles.glsl'
+
+import houseVertexShader from './shaders/house/vertex.glsl'
+import houseFragmentShader from './shaders/house/fragment.glsl'
 
 
 /**
@@ -20,8 +27,9 @@ const debugObject = {}
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
-// Scene
-const scene = new THREE.Scene()
+// Basic scene with camera and orbit controls
+const { scene, camera, controls } = setScene(true, canvas)
+
 
 // Loaders
 const dracoLoader = new DRACOLoader()
@@ -32,59 +40,12 @@ gltfLoader.setDRACOLoader(dracoLoader)
 
 const rgbeLoader = new RGBELoader()
 
-
-
-/**
- * Sizes
- */
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    pixelRatio: Math.min(window.devicePixelRatio, 2)
-}
-
-window.addEventListener('resize', () => {
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
-    sizes.pixelRatio = Math.min(window.devicePixelRatio, 2)
-
-    // Materials
-    particles.material.uniforms.uResolution.value.set(sizes.width * sizes.pixelRatio, sizes.height * sizes.pixelRatio)
-
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
-
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(sizes.pixelRatio)
-})
-
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(35, sizes.width / sizes.height, 0.001, 1000)
-camera.position.set(4.5, 6, 12)
-scene.add(camera)
-
-// Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
-
 /**
  * Renderer
  */
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    antialias: true,
-})
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(sizes.pixelRatio)
+debugObject.clearColor = '#1e1e1e'
+const renderer = setRenderer(canvas, debugObject.clearColor)
 
-debugObject.clearColor = '#29191f'
-renderer.setClearColor(debugObject.clearColor)
 
 /**
  * Environment map
@@ -96,6 +57,25 @@ renderer.setClearColor(debugObject.clearColor)
 //     scene.environment = environmentMap
 // })
 
+//color texture
+const colorTexture = new THREE.TextureLoader().load('./textures/GreyBrickHouse_Albedo.jpg')
+
+// Material
+const material = new CustomShaderMaterial({
+    //CSM
+    baseMaterial: THREE.MeshStandardMaterial,
+    vertexShader: houseVertexShader,
+    fragmentShader: houseFragmentShader,
+    // silent: true,
+    // uniforms: uniforms,
+    map: colorTexture,
+
+
+    // MeshBasicMaterial properties
+    transparent: true,
+    wireframe: false
+})
+
 
 
 /**
@@ -104,10 +84,13 @@ renderer.setClearColor(debugObject.clearColor)
 // const gltf = await gltfLoader.loadAsync('/model.glb')
 // const gltf = await gltfLoader.loadAsync('/elya.glb')
 // const gltf = await gltfLoader.loadAsync('/vertex-light-subdivided.glb')
+
 const gltf = await gltfLoader.loadAsync('/GreyBrickHouse-21.55.58.glb')
 
 scene.add(gltf.scene)
 
+//add material to the house
+gltf.scene.children[0].material = material
 
 //ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
@@ -178,16 +161,16 @@ gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Unifor
 gpgpu.computation.init()
 
 // Debug 
-gpgpu.debug = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshBasicMaterial({
-        map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
-    })
-)
-gpgpu.debug.position.x = 3
-scene.add(gpgpu.debug)
+// gpgpu.debug = new THREE.Mesh(
+//     new THREE.PlaneGeometry(1, 1),
+//     new THREE.MeshBasicMaterial({
+//         map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
+//     })
+// )
+// gpgpu.debug.position.x = 3
+// scene.add(gpgpu.debug)
 
-gpgpu.debug.visible = false
+// gpgpu.debug.visible = false
 
 console.log(gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture)
 
@@ -279,6 +262,9 @@ gui
 const clock = new THREE.Clock()
 let previousTime = 0
 
+//handle resize window
+handleResize(camera, renderer, particles, sizes)
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
@@ -296,7 +282,6 @@ const tick = () => {
 
     //now put this texture into the particles material
     particles.material.uniforms.uParticlesTexture.value = gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
-
 
     // Render normal scene
     renderer.render(scene, camera)
