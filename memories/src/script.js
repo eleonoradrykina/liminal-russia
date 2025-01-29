@@ -31,6 +31,7 @@ const canvas = document.querySelector('canvas.webgl')
 const { scene, camera, controls } = setScene(true, canvas)
 
 
+
 // Loaders
 const dracoLoader = new DRACOLoader()
 dracoLoader.setDecoderPath('/draco/')
@@ -45,6 +46,7 @@ const rgbeLoader = new RGBELoader()
  */
 debugObject.clearColor = '#1e1e1e'
 const renderer = setRenderer(canvas, debugObject.clearColor)
+console.log(renderer)
 
 
 /**
@@ -57,19 +59,23 @@ const renderer = setRenderer(canvas, debugObject.clearColor)
 //     scene.environment = environmentMap
 // })
 
-//color texture
-const colorTexture = new THREE.TextureLoader().load('./textures/GreyBrickHouse_Albedo.jpg')
+
+
+//uniforms for House material
+const uniforms = {
+    uMap: { value: null }, //setting it to inital map later
+    uTouchPosition: { value: new THREE.Vector3(0, 0, 0) }
+}
 
 // Material
-const material = new CustomShaderMaterial({
+const shaderMaterial = new CustomShaderMaterial({
     //CSM
     baseMaterial: THREE.MeshStandardMaterial,
+    // map: colorTexture,
     vertexShader: houseVertexShader,
     fragmentShader: houseFragmentShader,
     // silent: true,
-    // uniforms: uniforms,
-    map: colorTexture,
-
+    uniforms: uniforms,
 
     // MeshBasicMaterial properties
     transparent: true,
@@ -89,8 +95,12 @@ const gltf = await gltfLoader.loadAsync('/GreyBrickHouse-21.55.58.glb')
 
 scene.add(gltf.scene)
 
-//add material to the house
-gltf.scene.children[0].material = material
+//taking initial map from the house
+const map = gltf.scene.children[0].material.map
+//setting shader material to the house
+gltf.scene.children[0].material = shaderMaterial
+//passing initial map as a uniform into the shader material
+shaderMaterial.uniforms.uMap.value = map
 
 //ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
@@ -155,7 +165,7 @@ gpgpu.particlesVariable.material.uniforms.uBase = new THREE.Uniform(baseParticle
 gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence = new THREE.Uniform(0.5)
 gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength = new THREE.Uniform(2.0)
 gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.5)
-
+gpgpu.particlesVariable.material.uniforms.uTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 
 //Init
 gpgpu.computation.init()
@@ -222,8 +232,10 @@ particles.material = new THREE.ShaderMaterial({
     {
         uSize: new THREE.Uniform(0.05),
         uResolution: new THREE.Uniform(new THREE.Vector2(sizes.width * sizes.pixelRatio, sizes.height * sizes.pixelRatio)),
-        uParticlesTexture: new THREE.Uniform()
-    }
+        uParticlesTexture: new THREE.Uniform(),
+    },
+    transparent: true,
+    wireframe: false
 })
 
 // Points
@@ -265,6 +277,31 @@ let previousTime = 0
 //handle resize window
 handleResize(camera, renderer, particles, sizes)
 
+/**
+ * Cursor
+ */
+
+const mouse = new THREE.Vector2()
+window.addEventListener('mousemove', (event) => {
+    mouse.x = event.clientX / sizes.width * 2 - 1
+    mouse.y = - (event.clientY / sizes.height) * 2 + 1
+}
+)
+
+/**
+ * Raycasting
+ */
+const raycaster = new THREE.Raycaster()
+
+const checkIntersects = (object) => {
+    const modelIntersects = raycaster.intersectObject(object)
+    if (modelIntersects.length) {
+        uniforms.uTouchPosition.value = modelIntersects[0].point
+        //passing the touch position to particles shader
+        gpgpu.particlesVariable.material.uniforms.uTouchPosition.value = modelIntersects[0].point
+    }
+}
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
@@ -285,6 +322,12 @@ const tick = () => {
 
     // Render normal scene
     renderer.render(scene, camera)
+
+    //raycasting
+    raycaster.setFromCamera(mouse, camera)
+    if (gltf.scene.children[0]) {
+        checkIntersects(gltf.scene.children[0])
+    }
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

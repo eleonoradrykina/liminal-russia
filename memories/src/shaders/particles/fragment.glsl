@@ -1,5 +1,6 @@
 varying vec3 vColor;
 
+
 void main()
 {
     float distanceToCenter = length(gl_PointCoord - 0.5);

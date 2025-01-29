@@ -5,6 +5,8 @@ uniform float uFlowFieldInfluence;
 uniform float uFlowFieldStrength;
 uniform float uFlowFieldFrequency;
 
+uniform vec3 uTouchPosition;
+
 
 #include ../includes/simplexNoise4d.glsl
 
@@ -22,7 +24,8 @@ void main()
         particle.a = mod(particle.a, 1.0);
         particle.xyz = base.xyz;
     } else 
-    {   //strength
+    {   
+        //strength
         float strength = simplexNoise4d(vec4(base.xyz * 0.2, time + 1.0));
         float influence = (uFlowFieldInfluence - 0.5) * (- 2.0);
         strength = smoothstep(influence, 1.0, strength);
@@ -38,8 +41,14 @@ void main()
     //normalize direction
      flowField = (normalize(flowField));
 
+     //flowfieldStrength depending on distance between base and touch position
+     float distance = length(base.xyz - uTouchPosition);
+     
+     //flowFieldStrength between 0 and 7
+     float flowFieldStrength = (1.0 - smoothstep(0.0, 1.0, distance)) * 7.0; 
+
      //apply flowfield to the particle
-     particle.xyz += flowField * uDeltaTime * strength * uFlowFieldStrength;
+     particle.xyz += flowField * uDeltaTime * strength * flowFieldStrength;
 
      //particle life span
      particle.a += uDeltaTime * 0.3;

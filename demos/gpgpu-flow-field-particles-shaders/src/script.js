@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'
@@ -25,6 +26,7 @@ const scene = new THREE.Scene()
 // Loaders
 const dracoLoader = new DRACOLoader()
 dracoLoader.setDecoderPath('/draco/')
+
 
 const gltfLoader = new GLTFLoader()
 gltfLoader.setDRACOLoader(dracoLoader)
@@ -82,12 +84,20 @@ debugObject.clearColor = '#29191f'
 renderer.setClearColor(debugObject.clearColor)
 
 
+
+
+
+
 /**
  * Load model
  */
 // const gltf = await gltfLoader.loadAsync('/model.glb')
 // const gltf = await gltfLoader.loadAsync('/elya.glb')
 const gltf = await gltfLoader.loadAsync('/vertex-light-subdivided.glb')
+
+
+
+
 
 /**
  * Base Geometry
