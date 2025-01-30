@@ -175,8 +175,7 @@ const lastPixelIndex = (baseGeometry.count) * 4
 baseParticlesTexture.image.data[lastPixelIndex + 0] = 0.0 //start with 0.0
 //time of standby 0.0
 baseParticlesTexture.image.data[lastPixelIndex + 1] = 0.0 //start with 0.0
-//putting alpha to 1.0 for the shader
-baseParticlesTexture.image.data[lastPixelIndex + 3] = 1.0
+
 
 
 //Particles variable

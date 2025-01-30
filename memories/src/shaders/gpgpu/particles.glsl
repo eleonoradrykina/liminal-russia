@@ -22,7 +22,7 @@ void main()
 
     // Calculate movement speed based on distance between current and previous touch positions
     float touchMovementDistance = length(uTouchPosition - uPreviousTouchPosition);
-    float speedFactor = clamp(touchMovementDistance * 2.0, 0.0, 1.0); // Adjust multiplier to tune sensitivity
+    float speedFactor = clamp(touchMovementDistance * 4.0, 0.0, 1.0); // Adjust multiplier to tune sensitivity
 
     // Dead ?
     if (particle.a >= 1.0) 
@@ -60,7 +60,7 @@ void main()
 
          // Store the updated influence and time for the next frame (only for the last pixel)
         if (gl_FragCoord.x >= resolution.x - 1.0 && gl_FragCoord.y >= resolution.y - 1.0) {
-            gl_FragColor = vec4(flowFieldInfluence, timeStandby, 0.0, 1.0);
+            gl_FragColor = vec4(flowFieldInfluence, timeStandby, 0.0, 0.0);
             return;
         }
 
