@@ -15,7 +15,7 @@ void main() {
     // float distance = length(pos - center);
     float distance = pow(length(vPosition - uTouchPosition), 4.0);
     // map distance to 0 from 1:
-    float alpha = distance;
+    float alpha = distance*0.15;
     // float alpha = step(1.3, distance);
     //alpha based on distance:
     csm_DiffuseColor = vec4(textureColor.rgb, alpha);

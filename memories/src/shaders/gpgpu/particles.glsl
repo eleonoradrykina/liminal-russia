@@ -6,6 +6,7 @@ uniform float uFlowFieldStrength;
 uniform float uFlowFieldFrequency;
 
 uniform vec3 uTouchPosition;
+uniform vec3 uPreviousTouchPosition;
 
 
 #include ../includes/simplexNoise4d.glsl
@@ -18,6 +19,11 @@ void main()
     vec4 particle = texture(uParticles, uv);
     vec4 base = texture(uBase, uv);
 
+
+    // Calculate movement speed based on distance between current and previous touch positions
+    float touchMovementDistance = length(uTouchPosition - uPreviousTouchPosition);
+    float speedFactor = clamp(touchMovementDistance * 2.0, 0.0, 1.0); // Adjust multiplier to tune sensitivity
+
     // Dead ?
     if (particle.a >= 1.0) 
     {
@@ -25,11 +31,38 @@ void main()
         particle.xyz = base.xyz;
     } else 
     {   
-        //strength
-        float strength = simplexNoise4d(vec4(base.xyz * 0.2, time + 1.0));
-        float influence = (uFlowFieldInfluence - 0.5) * (- 2.0);
-        strength = smoothstep(influence, 1.0, strength);
+        // Get the initial flow field influence from the last pixel
+        vec4 lastPixel = texture(uParticles, vec2(1.0));
+        float initialInfluence = lastPixel.x;
+        //get the time of standby
+        float timeStandby = lastPixel.y;
 
+        //strength with speed influence
+        float targetInfluence = simplexNoise4d(vec4(base.xyz * 0.2, time + 1.0));
+        //uFlowFieldInfluence between 0.75 and 1
+        float dynamicInfluence = (speedFactor - 0.5) * (-2.0); //-0.2 to -1
+
+        // if we're in standby, use time of standby instead of speedFactor
+        if (touchMovementDistance < 0.01) {
+            dynamicInfluence = timeStandby;
+            //clamp dynamicInfluence between 0.0 and 1.0
+            dynamicInfluence = clamp(dynamicInfluence, 0.0, 1.0);
+            timeStandby += uDeltaTime;
+        }  else {
+            timeStandby = 0.0;  // Reset the timer when there's movement
+        }
+
+        targetInfluence = smoothstep(dynamicInfluence, 1.0, targetInfluence);
+
+        // Gradually interpolate between initial and target influence
+        // float lerpFactor = uDeltaTime * 0.5; // Adjust this value to control transition speed
+        float flowFieldInfluence = mix(initialInfluence, targetInfluence, 0.5);
+
+         // Store the updated influence and time for the next frame (only for the last pixel)
+        if (gl_FragCoord.x >= resolution.x - 1.0 && gl_FragCoord.y >= resolution.y - 1.0) {
+            gl_FragColor = vec4(flowFieldInfluence, timeStandby, 0.0, 1.0);
+            return;
+        }
 
         //Flow field
         vec3 flowField = vec3(
@@ -39,16 +72,17 @@ void main()
         );
 
     //normalize direction
-     flowField = (normalize(flowField));
+     flowField = normalize(flowField);
 
      //flowfieldStrength depending on distance between base and touch position
      float distance = length(base.xyz - uTouchPosition);
-     
-     //flowFieldStrength between 0 and 7
-     float flowFieldStrength = (1.0 - smoothstep(0.0, 1.0, distance)) * 7.0; 
+
+     //flowFieldStrength between 0 and 7, increased when moving faster
+     float baseFlowStrength = (1.0 - smoothstep(0.0, 1.0, distance)) * 7.0;
+     float dynamicFlowStrength = mix(baseFlowStrength, baseFlowStrength * 2.0, speedFactor);
 
      //apply flowfield to the particle
-     particle.xyz += flowField * uDeltaTime * strength * flowFieldStrength;
+     particle.xyz += flowField * uDeltaTime * flowFieldInfluence * dynamicFlowStrength;
 
      //particle life span
      particle.a += uDeltaTime * 0.3;

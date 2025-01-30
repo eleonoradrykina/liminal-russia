@@ -5,6 +5,7 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'
 import { sizes, handleResize, setScene, setRenderer } from './utils.js'
+import environment from './environment.js'
 import GUI from 'lil-gui'
 import CustomShaderMaterial from 'three-custom-shader-material/vanilla'
 
@@ -59,6 +60,21 @@ console.log(renderer)
 //     scene.environment = environmentMap
 // })
 
+//add fog
+scene.fog = new THREE.Fog(0x636458, 0.1, 50)
+
+//add background texture sky
+const textureLoader = new THREE.TextureLoader()
+const bgTexture = textureLoader.load('./env_maps/background-sky.jpeg')
+bgTexture.colorSpace = THREE.SRGBColorSpace
+
+scene.background = bgTexture
+
+/**
+ * Scene's environment
+ */
+const environmentGroup = environment()
+scene.add(environmentGroup)
 
 
 //uniforms for House material
@@ -94,11 +110,12 @@ const shaderMaterial = new CustomShaderMaterial({
 const gltf = await gltfLoader.loadAsync('/GreyBrickHouse-21.55.58.glb')
 
 scene.add(gltf.scene)
+const house = gltf.scene.children[0]
 
 //taking initial map from the house
-const map = gltf.scene.children[0].material.map
+const map = house.material.map
 //setting shader material to the house
-gltf.scene.children[0].material = shaderMaterial
+house.material = shaderMaterial
 //passing initial map as a uniform into the shader material
 shaderMaterial.uniforms.uMap.value = map
 
@@ -108,7 +125,7 @@ scene.add(ambientLight)
 
 //directional light
 const directionalLight = new THREE.DirectionalLight(0xffffff, 10)
-directionalLight.position.set(10, 10, 10)
+directionalLight.position.set(10, 14, 10)
 scene.add(directionalLight)
 
 /**
@@ -152,7 +169,15 @@ for (let i = 0; i < baseGeometry.count; i++) {
 
 }
 
-console.log(baseParticlesTexture.image)
+// Store values in the last pixel
+const lastPixelIndex = (baseGeometry.count) * 4
+//flowFieldInfluence 0.0
+baseParticlesTexture.image.data[lastPixelIndex + 0] = 0.0 //start with 0.0
+//time of standby 0.0
+baseParticlesTexture.image.data[lastPixelIndex + 1] = 0.0 //start with 0.0
+//putting alpha to 1.0 for the shader
+baseParticlesTexture.image.data[lastPixelIndex + 3] = 1.0
+
 
 //Particles variable
 gpgpu.particlesVariable = gpgpu.computation.addVariable('uParticles', gpgpuParticlesShader, baseParticlesTexture)
@@ -166,6 +191,7 @@ gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence = new THREE.Unifor
 gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength = new THREE.Uniform(2.0)
 gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.5)
 gpgpu.particlesVariable.material.uniforms.uTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
+gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 
 //Init
 gpgpu.computation.init()
@@ -296,8 +322,13 @@ const raycaster = new THREE.Raycaster()
 const checkIntersects = (object) => {
     const modelIntersects = raycaster.intersectObject(object)
     if (modelIntersects.length) {
+        // Store current position as previous before updating current
+        gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition.value.copy(
+            gpgpu.particlesVariable.material.uniforms.uTouchPosition.value
+        )
+
+        // Update current touch position
         uniforms.uTouchPosition.value = modelIntersects[0].point
-        //passing the touch position to particles shader
         gpgpu.particlesVariable.material.uniforms.uTouchPosition.value = modelIntersects[0].point
     }
 }
@@ -310,9 +341,16 @@ const tick = () => {
     // Update controls
     controls.update()
 
+    // rotation of controls
+    // controls.minAzimuthAngle += deltaTime * 0.02
+    // controls.maxAzimuthAngle += deltaTime * 0.02
+    // controls.update()
+
+
     // put time into shader
     gpgpu.particlesVariable.material.uniforms.uTime.value = elapsedTime
     gpgpu.particlesVariable.material.uniforms.uDeltaTime.value = deltaTime
+
 
     //gpgpu update
     gpgpu.computation.compute()
@@ -325,8 +363,8 @@ const tick = () => {
 
     //raycasting
     raycaster.setFromCamera(mouse, camera)
-    if (gltf.scene.children[0]) {
-        checkIntersects(gltf.scene.children[0])
+    if (house) {
+        checkIntersects(house)
     }
 
     // Call tick again on the next frame
