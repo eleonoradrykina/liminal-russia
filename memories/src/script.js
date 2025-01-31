@@ -53,7 +53,7 @@ console.log(renderer)
 /**
  * Environment map
  */
-// rgbeLoader.load('./env_maps/st_peters_square_night_4k.hdr', (environmentMap) => {
+// rgbeLoader.load('./env_maps/tikhon.hdr', (environmentMap) => {
 //     environmentMap.mapping = THREE.EquirectangularReflectionMapping
 
 //     scene.background = environmentMap
@@ -61,7 +61,7 @@ console.log(renderer)
 // })
 
 //add fog
-scene.fog = new THREE.Fog(0x636458, 0.1, 50)
+// scene.fog = new THREE.Fog(0x636458, 0.1, 50)
 
 //add background texture sky
 const textureLoader = new THREE.TextureLoader()
@@ -103,11 +103,7 @@ const shaderMaterial = new CustomShaderMaterial({
 /**
  * Load model
  */
-// const gltf = await gltfLoader.loadAsync('/model.glb')
-// const gltf = await gltfLoader.loadAsync('/elya.glb')
-// const gltf = await gltfLoader.loadAsync('/vertex-light-subdivided.glb')
-
-const gltf = await gltfLoader.loadAsync('/GreyBrickHouse-21.55.58.glb')
+const gltf = await gltfLoader.loadAsync('/compressed_house.glb')
 
 scene.add(gltf.scene)
 const house = gltf.scene.children[0]

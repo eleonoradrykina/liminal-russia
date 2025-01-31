@@ -32,7 +32,7 @@ const handleResize = (camera, renderer, particles) => {
 //set scene with the camera and orbit controls
 const setScene = (orbitcontrols = true, canvas) => {
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(35, sizes.width / sizes.height, 0.001, 1000)
+    const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.001, 1000)
     camera.position.set(4.5, 2, 12)
     scene.add(camera)
     if (orbitcontrols) {

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "deploy": "vercel --prod" 
   },
   "devDependencies": {
     "vite": "^5.3.3",
@@ -15,6 +16,7 @@
   "dependencies": {
     "lil-gui": "^0.19.2",
     "three": "^0.172.0",
-    "three-custom-shader-material": "^6.2.1"
+    "three-custom-shader-material": "^6.2.1",
+    "vercel": "^39.4.2"
   }
 }

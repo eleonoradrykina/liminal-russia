@@ -13,56 +13,51 @@ export default function environment() {
             // transparent: true
         })
     )
-    cube.position.set(-8, -0.2, 8)
-    cube.rotation.set(0, -Math.PI / 2, 0)
-    groupEnvironment.add(cube)
 
-    const cube2 = cube.clone()
-    cube2.position.set(8, -0.2, 8)
-    groupEnvironment.add(cube2)
+    // Create outer ring of cubes
+    const positions = [
+        { x: -8, z: 8, rotation: -Math.PI / 2 },
+        { x: 8, z: 8, rotation: -Math.PI / 2 },
+        { x: 8, z: -8, rotation: -Math.PI / 2 },
+        { x: -8, z: -8, rotation: -Math.PI / 2 },
+        { x: 0, z: 16, rotation: 0 },
+        { x: 16, z: 16, rotation: 0 },
+        { x: -16, z: 16, rotation: 0 },
+        { x: 0, z: -16, rotation: 0 },
+        { x: 16, z: -16, rotation: 0 },
+        { x: -16, z: -16, rotation: 0 },
+        { x: -24, z: -8, rotation: -Math.PI / 2 },
+        { x: -24, z: 8, rotation: -Math.PI / 2 },
+        { x: 24, z: -8, rotation: -Math.PI / 2 },
+        { x: 24, z: 8, rotation: -Math.PI / 2 }
+    ];
 
-    const cube3 = cube.clone()
-    cube3.position.set(8, -0.2, -8)
-    groupEnvironment.add(cube3)
-
-    const cube4 = cube.clone()
-    cube4.position.set(-8, -0.2, -8)
-    groupEnvironment.add(cube4)
+    positions.forEach(pos => {
+        const newCube = cube.clone();
+        newCube.position.set(pos.x, -0.2, pos.z);
+        newCube.rotation.set(0, pos.rotation, 0);
+        groupEnvironment.add(newCube);
+    });
 
     //load textures
     const textureLoader = new THREE.TextureLoader()
     const asphaltAlpha = textureLoader.load('./textures/snow_field_textures/asphalt_04_alpha.png')
-    // const asphaltDiffuse = textureLoader.load('./textures/snow_field_textures/snow_field_aerial_col_1k.jpg')
-    // const asphaltNormal = textureLoader.load('./textures/snow_field_textures/snow_field_aerial_nor_gl_1k.jpg')
-    // const asphaltDisplacement = textureLoader.load('./textures/snow_field_textures/snow_field_aerial_height_1k.jpg')
-    // const asphaltARM = textureLoader.load('./textures/snow_field_textures/snow_field_aerial_arm_1k.jpg')
-    // asphaltDiffuse.repeat.set(1, 1)
-    // asphaltDiffuse.wrapS = THREE.RepeatWrapping
-    // asphaltDiffuse.wrapT = THREE.RepeatWrapping
 
     //material
     const material = new THREE.MeshStandardMaterial({
         alphaMap: asphaltAlpha,
         color: 0x636458,
-        // map: asphaltDiffuse,
-        // normalMap: asphaltNormal,
-        // displacementMap: asphaltDisplacement,
-        // roughnessMap: asphaltARM,
-        // metalnessMap: asphaltARM,
-        // displacementScale: 0.05,
-        // displacementBias: -0.125,
         transparent: true,
     })
     // material.map.colorSpace = THREE.SRGBColorSpace
 
     //add plane
     const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 1, 10, 10),
+        new THREE.PlaneGeometry(60, 60, 10, 10),
         material
     )
     plane.position.set(0, -1.2, 0)
     plane.rotation.set(-Math.PI / 2, 0, 0)
-    plane.scale.set(28, 28, 10)
     groupEnvironment.add(plane)
 
     return groupEnvironment
