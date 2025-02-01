@@ -82,7 +82,8 @@ export default function Player({ orbitControlsRef }) {
 
         const cameraPosition = new THREE.Vector3()
         cameraPosition.x = bodyPosition.x + Math.cos(angle) * radius
-        cameraPosition.y = bodyPosition.y + 0.5
+        // cameraPosition.y = bodyPosition.y + 0.5
+        cameraPosition.y = bodyPosition.y + 40.5
         cameraPosition.z = bodyPosition.z + Math.sin(angle) * radius
 
         // clamp camera position to the bounds of the corridor
