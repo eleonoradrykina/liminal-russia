@@ -1,9 +1,9 @@
 uniform float uTime;
 uniform float uDeltaTime;
 uniform sampler2D uBase;
-uniform float uFlowFieldInfluence;
-uniform float uFlowFieldStrength;
-uniform float uFlowFieldFrequency;
+
+// uniform float uFlowFieldStrength;
+uniform float uFlowFieldFrequency; //0.55
 
 uniform vec3 uTouchPosition;
 uniform vec3 uPreviousTouchPosition;
@@ -40,7 +40,7 @@ void main()
 
         //strength with speed influence
         float baseInfluence = simplexNoise4d(vec4(base.xyz * 0.2, time + 1.0));
-        //desired uFlowFieldInfluence is between 0.75 and 1
+        //desired FlowFieldInfluence is between 0.75 and 1
         float dynamicInfluence = (speedFactor - 0.5) * (-2.0); //-0.2 to -1
 
         // if we're in standby, use time of standby instead of speedFactor
@@ -68,7 +68,7 @@ void main()
         //Flow field
         vec3 flowField = vec3(
             simplexNoise4d(vec4(particle.xyz * uFlowFieldFrequency + 0.0, time)),
-            (-1.0)*abs(simplexNoise4d(vec4(particle.xyz * uFlowFieldFrequency+ 1.0, time))),
+            (simplexNoise4d(vec4(particle.xyz * uFlowFieldFrequency+ 1.0, time))),
             simplexNoise4d(vec4(particle.xyz * uFlowFieldFrequency + 2.0, time))
         );
 

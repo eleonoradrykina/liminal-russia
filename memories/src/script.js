@@ -22,7 +22,7 @@ import houseFragmentShader from './shaders/house/fragment.glsl'
  * Base
  */
 // Debug
-const gui = new GUI({ width: 340 })
+// const gui = new GUI({ width: 340 })
 const debugObject = {}
 
 // Canvas
@@ -47,21 +47,7 @@ const rgbeLoader = new RGBELoader()
  */
 debugObject.clearColor = '#1e1e1e'
 const renderer = setRenderer(canvas, debugObject.clearColor)
-console.log(renderer)
 
-
-/**
- * Environment map
- */
-// rgbeLoader.load('./env_maps/tikhon.hdr', (environmentMap) => {
-//     environmentMap.mapping = THREE.EquirectangularReflectionMapping
-
-//     scene.background = environmentMap
-//     scene.environment = environmentMap
-// })
-
-//add fog
-// scene.fog = new THREE.Fog(0x636458, 0.1, 50)
 
 //add background texture sky
 const textureLoader = new THREE.TextureLoader()
@@ -116,21 +102,23 @@ house.material = shaderMaterial
 shaderMaterial.uniforms.uMap.value = map
 
 //ambient light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+const ambientLight = new THREE.AmbientLight(0xFFF7D7, 0.5)
 scene.add(ambientLight)
 
 //directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 10)
-directionalLight.position.set(10, 14, 10)
+const directionalLight = new THREE.DirectionalLight(0xFFF7ED, 10)
+directionalLight.position.set(4, 14, 6)
 scene.add(directionalLight)
+
+const directionalLightBack = new THREE.DirectionalLight(0xFFF7ED, 3)
+directionalLightBack.position.set(-8, 14, -6)
+scene.add(directionalLightBack)
 
 /**
  * Base Geometry
  */
 
 const baseGeometry = {}
-
-console.log(gltf.scene)
 baseGeometry.instance = gltf.scene.children[0].geometry
 //set the scale
 baseGeometry.instance.scale(0.25, 0.25, 0.25)
@@ -139,7 +127,6 @@ baseGeometry.instance.rotateX(Math.PI / 2)
 
 //taking this from atts of the instance
 baseGeometry.count = baseGeometry.instance.attributes.position.count
-console.log(baseGeometry.instance.attributes)
 
 /**
  * GPU Compute
@@ -147,7 +134,6 @@ console.log(baseGeometry.instance.attributes)
 //Setup
 const gpgpu = {}
 gpgpu.size = Math.ceil(Math.sqrt(baseGeometry.count))
-console.log(gpgpu.size)
 gpgpu.computation = new GPUComputationRenderer(gpgpu.size, gpgpu.size, renderer) //square: width , height
 
 //Base particles
@@ -182,9 +168,7 @@ gpgpu.computation.setVariableDependencies(gpgpu.particlesVariable, [gpgpu.partic
 gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0)
 gpgpu.particlesVariable.material.uniforms.uDeltaTime = new THREE.Uniform(0)
 gpgpu.particlesVariable.material.uniforms.uBase = new THREE.Uniform(baseParticlesTexture)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence = new THREE.Uniform(0.5)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength = new THREE.Uniform(2.0)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.5)
+gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.55)
 gpgpu.particlesVariable.material.uniforms.uTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 
@@ -192,19 +176,16 @@ gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition = new THREE.Uni
 gpgpu.computation.init()
 
 // Debug 
-// gpgpu.debug = new THREE.Mesh(
-//     new THREE.PlaneGeometry(1, 1),
-//     new THREE.MeshBasicMaterial({
-//         map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
-//     })
-// )
-// gpgpu.debug.position.x = 3
-// scene.add(gpgpu.debug)
+gpgpu.debug = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+        map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
+    })
+)
 
-// gpgpu.debug.visible = false
+scene.add(gpgpu.debug)
 
-console.log(gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture)
-
+gpgpu.debug.visible = false
 
 
 /**
@@ -251,7 +232,7 @@ particles.material = new THREE.ShaderMaterial({
     fragmentShader: particlesFragmentShader,
     uniforms:
     {
-        uSize: new THREE.Uniform(0.05),
+        uSize: new THREE.Uniform(0.028),
         uResolution: new THREE.Uniform(new THREE.Vector2(sizes.width * sizes.pixelRatio, sizes.height * sizes.pixelRatio)),
         uParticlesTexture: new THREE.Uniform(),
     },
@@ -263,31 +244,17 @@ particles.material = new THREE.ShaderMaterial({
 particles.points = new THREE.Points(particles.geometry, particles.material)
 scene.add(particles.points)
 
-console.log(particles)
-
 /**
  * Tweaks
  */
-gui.addColor(debugObject, 'clearColor').onChange(() => { renderer.setClearColor(debugObject.clearColor) })
-gui.add(particles.material.uniforms.uSize, 'value').min(0).max(1).step(0.001).name('uSize')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence, 'value')
-    .min(0)
-    .max(1)
-    .step(0.001)
-    .name('uFlowFieldInfluence')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength, 'value')
-    .min(0)
-    .max(10)
-    .step(0.1)
-    .name('uFlowFieldStrength')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency, 'value')
-    .min(0)
-    .max(1)
-    .step(0.01)
-    .name('uFlowFieldFrequency')
+// gui.addColor(debugObject, 'clearColor').onChange(() => { renderer.setClearColor(debugObject.clearColor) })
+// gui.add(particles.material.uniforms.uSize, 'value').min(0).max(1).step(0.001).name('uSize')
+// gui
+//     .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency, 'value')
+//     .min(0)
+//     .max(1)
+//     .step(0.01)
+//     .name('uFlowFieldFrequency')
 
 /**
  * Animate
@@ -335,17 +302,11 @@ const tick = () => {
 
     // Update controls
     controls.update()
-
-    // rotation of controls
-    // controls.minAzimuthAngle += deltaTime * 0.02
-    // controls.maxAzimuthAngle += deltaTime * 0.02
-    // controls.update()
-
+    // console.log(controls)
 
     // put time into shader
     gpgpu.particlesVariable.material.uniforms.uTime.value = elapsedTime
     gpgpu.particlesVariable.material.uniforms.uDeltaTime.value = deltaTime
-
 
     //gpgpu update
     gpgpu.computation.compute()
