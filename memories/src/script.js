@@ -4,6 +4,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'
+import { Text } from 'troika-three-text'
+
 import { sizes, handleResize, setScene, setRenderer } from './utils.js'
 import environment from './environment.js'
 import GUI from 'lil-gui'
@@ -30,8 +32,6 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Basic scene with camera and orbit controls
 const { scene, camera, controls } = setScene(true, canvas)
-
-
 
 // Loaders
 const dracoLoader = new DRACOLoader()
@@ -78,12 +78,12 @@ const shaderMaterial = new CustomShaderMaterial({
     fragmentShader: houseFragmentShader,
     // silent: true,
     uniforms: uniforms,
+    depthWrite: false,
 
     // MeshBasicMaterial properties
     transparent: true,
     wireframe: false
 })
-
 
 
 /**
@@ -114,10 +114,10 @@ const directionalLightBack = new THREE.DirectionalLight(0xFFF7ED, 3)
 directionalLightBack.position.set(-8, 14, -6)
 scene.add(directionalLightBack)
 
+
 /**
  * Base Geometry
  */
-
 const baseGeometry = {}
 baseGeometry.instance = gltf.scene.children[0].geometry
 //set the scale
@@ -215,15 +215,11 @@ for (let y = 0; y < gpgpu.size; y++) {
 }
 
 
-
-
 particles.geometry = new THREE.BufferGeometry()
 particles.geometry.setDrawRange(0, baseGeometry.count)
 particles.geometry.setAttribute('aParticlesUv', new THREE.BufferAttribute(particlesUvArray, 2))
 particles.geometry.setAttribute('aColor', baseGeometry.instance.attributes.color_1)
 particles.geometry.setAttribute('aSize', new THREE.BufferAttribute(sizesArray, 1))
-
-
 
 
 // Material
@@ -255,6 +251,37 @@ scene.add(particles.points)
 //     .max(1)
 //     .step(0.01)
 //     .name('uFlowFieldFrequency')
+
+/**
+ * Text
+ */
+const textMaterial = new THREE.MeshStandardMaterial({
+    color: 0xFFFFFF,
+    depthTest: false,
+})
+const text1 = new Text()
+const text2 = new Text()
+const text3 = new Text()
+const text4 = new Text()
+scene.add(text1, text2, text3, text4)
+
+text1.text = 'THE SHOW IS OVER. THE AUDIENCE GET UP TO LEAVE THEIR SEATS.'
+text1.fontSize = 0.2
+text1.position.x = -4
+text1.position.y = 0.5
+
+text2.text = 'TIME TO COLLECT THEIR COATS AND GO HOME.'
+text2.fontSize = 0.2
+text2.position.x = -4
+
+text3.text = 'THEY TURN AROUND. NO MORE COATS AND NO MORE HOME.'
+text3.fontSize = 0.2
+text3.position.x = -4
+text3.position.y = -0.5
+
+
+
+
 
 /**
  * Animate
