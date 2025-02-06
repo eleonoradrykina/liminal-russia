@@ -253,24 +253,42 @@ export default function Corridor() {
 
     return <>
         <Floor size={ 16 }/>
-        <Ceiling size={ 16 }/>
+        {/* <Ceiling size={ 16 }/> */}
         {/* GROUP A*/}
-        <WallHorizontal position={ [-9.7, 0.75, -4] } length = {12} />
-        <WallVertical position={ [-3.85, 0.75, -8.15] }length = {8}/>
+        {/* <WallHorizontal position={ [-9.7, 0.75, -4] } length = {12} />
+        <WallVertical position={ [-3.85, 0.75, -8.15] }length = {8}/> */}
 
         {/* GROUP B*/}
-        <WallHorizontal position={ [-7.0, 0.75, -20] }length = {10 } />
-        <WallVertical position={ [-6.6, 0.75, -25.0] }length = {9.75}/>
+        {/* <WallHorizontal position={ [-7.0, 0.75, -20] }length = {10 } />
+        <WallVertical position={ [-6.6, 0.75, -25.0] }length = {9.75}/> */}
 
         {/* GROUP C*/}
-        <WallHorizontal position={ [12.7, 0.75, -22] } length = {6}/>
+        {/* <WallHorizontal position={ [12.7, 0.75, -22] } length = {6}/>
         <WallVertical position={ [6.6, 0.75, -20.65] }length = {13}/>
-        <WallHorizontal position={ [8.7, 0.75, -14] } length = {14}/>
+        <WallHorizontal position={ [8.7, 0.75, -14] } length = {14}/> */}
 
         {/* GROUP D*/}
-        <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/>
+        {/* <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/> */}
+
+        {/* BASE */}
+
+        {/* top part */}
+        <WallVertical position={ [-4.85, 0.75, -18.03] }length = {7.75}/> 
+        <WallVertical position={ [6.7, 0.75, -18.03] }length = {7.75}/> 
+        <WallVertical position={ [0, 0.75, -25.95] }length = {7.75}/> 
+
+        {/* central corridor*/}
+        <WallHorizontal position={[3.0, 0.75, -14]  } length = {16}/>
+        <WallHorizontal position={[6.0, 0.75, -8]  } length = {9}/>
+
+         {/* bottom part */}
+        <WallVertical position={ [10.35, 0.75, -4.85] }length = {6.0}/> 
+        <WallVertical position={ [-4.85, 0.75, -4.53] }length = {7.0}/> 
+        <WallVertical position={ [-10.0, 0.75, -4.53] }length = {7.0}/> 
+        <WallHorizontal position={[-7.42, 0.75, -0.872]  } length = {5.45}/>
+
+        
 
         <Bounds length={ 16} />
-
     </>
 }

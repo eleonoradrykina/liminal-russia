@@ -4,6 +4,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js'
+import { Text } from 'troika-three-text'
+
 import { sizes, handleResize, setScene, setRenderer } from './utils.js'
 import environment from './environment.js'
 import GUI from 'lil-gui'
@@ -22,7 +24,7 @@ import houseFragmentShader from './shaders/house/fragment.glsl'
  * Base
  */
 // Debug
-const gui = new GUI({ width: 340 })
+// const gui = new GUI({ width: 340 })
 const debugObject = {}
 
 // Canvas
@@ -30,8 +32,6 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Basic scene with camera and orbit controls
 const { scene, camera, controls } = setScene(true, canvas)
-
-
 
 // Loaders
 const dracoLoader = new DRACOLoader()
@@ -47,21 +47,7 @@ const rgbeLoader = new RGBELoader()
  */
 debugObject.clearColor = '#1e1e1e'
 const renderer = setRenderer(canvas, debugObject.clearColor)
-console.log(renderer)
 
-
-/**
- * Environment map
- */
-// rgbeLoader.load('./env_maps/st_peters_square_night_4k.hdr', (environmentMap) => {
-//     environmentMap.mapping = THREE.EquirectangularReflectionMapping
-
-//     scene.background = environmentMap
-//     scene.environment = environmentMap
-// })
-
-//add fog
-scene.fog = new THREE.Fog(0x636458, 0.1, 50)
 
 //add background texture sky
 const textureLoader = new THREE.TextureLoader()
@@ -92,6 +78,7 @@ const shaderMaterial = new CustomShaderMaterial({
     fragmentShader: houseFragmentShader,
     // silent: true,
     uniforms: uniforms,
+    depthWrite: false,
 
     // MeshBasicMaterial properties
     transparent: true,
@@ -99,15 +86,10 @@ const shaderMaterial = new CustomShaderMaterial({
 })
 
 
-
 /**
  * Load model
  */
-// const gltf = await gltfLoader.loadAsync('/model.glb')
-// const gltf = await gltfLoader.loadAsync('/elya.glb')
-// const gltf = await gltfLoader.loadAsync('/vertex-light-subdivided.glb')
-
-const gltf = await gltfLoader.loadAsync('/GreyBrickHouse-21.55.58.glb')
+const gltf = await gltfLoader.loadAsync('/compressed_house.glb')
 
 scene.add(gltf.scene)
 const house = gltf.scene.children[0]
@@ -120,21 +102,23 @@ house.material = shaderMaterial
 shaderMaterial.uniforms.uMap.value = map
 
 //ambient light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+const ambientLight = new THREE.AmbientLight(0xFFF7D7, 0.5)
 scene.add(ambientLight)
 
 //directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 10)
-directionalLight.position.set(10, 14, 10)
+const directionalLight = new THREE.DirectionalLight(0xFFF7ED, 10)
+directionalLight.position.set(4, 14, 6)
 scene.add(directionalLight)
+
+const directionalLightBack = new THREE.DirectionalLight(0xFFF7ED, 3)
+directionalLightBack.position.set(-8, 14, -6)
+scene.add(directionalLightBack)
+
 
 /**
  * Base Geometry
  */
-
 const baseGeometry = {}
-
-console.log(gltf.scene)
 baseGeometry.instance = gltf.scene.children[0].geometry
 //set the scale
 baseGeometry.instance.scale(0.25, 0.25, 0.25)
@@ -143,7 +127,6 @@ baseGeometry.instance.rotateX(Math.PI / 2)
 
 //taking this from atts of the instance
 baseGeometry.count = baseGeometry.instance.attributes.position.count
-console.log(baseGeometry.instance.attributes)
 
 /**
  * GPU Compute
@@ -151,7 +134,6 @@ console.log(baseGeometry.instance.attributes)
 //Setup
 const gpgpu = {}
 gpgpu.size = Math.ceil(Math.sqrt(baseGeometry.count))
-console.log(gpgpu.size)
 gpgpu.computation = new GPUComputationRenderer(gpgpu.size, gpgpu.size, renderer) //square: width , height
 
 //Base particles
@@ -186,9 +168,7 @@ gpgpu.computation.setVariableDependencies(gpgpu.particlesVariable, [gpgpu.partic
 gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0)
 gpgpu.particlesVariable.material.uniforms.uDeltaTime = new THREE.Uniform(0)
 gpgpu.particlesVariable.material.uniforms.uBase = new THREE.Uniform(baseParticlesTexture)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence = new THREE.Uniform(0.5)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength = new THREE.Uniform(2.0)
-gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.5)
+gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency = new THREE.Uniform(0.55)
 gpgpu.particlesVariable.material.uniforms.uTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition = new THREE.Uniform(new THREE.Vector3(0, 0, 0))
 
@@ -196,19 +176,16 @@ gpgpu.particlesVariable.material.uniforms.uPreviousTouchPosition = new THREE.Uni
 gpgpu.computation.init()
 
 // Debug 
-// gpgpu.debug = new THREE.Mesh(
-//     new THREE.PlaneGeometry(1, 1),
-//     new THREE.MeshBasicMaterial({
-//         map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
-//     })
-// )
-// gpgpu.debug.position.x = 3
-// scene.add(gpgpu.debug)
+gpgpu.debug = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({
+        map: gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture
+    })
+)
 
-// gpgpu.debug.visible = false
+scene.add(gpgpu.debug)
 
-console.log(gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture)
-
+gpgpu.debug.visible = false
 
 
 /**
@@ -238,15 +215,11 @@ for (let y = 0; y < gpgpu.size; y++) {
 }
 
 
-
-
 particles.geometry = new THREE.BufferGeometry()
 particles.geometry.setDrawRange(0, baseGeometry.count)
 particles.geometry.setAttribute('aParticlesUv', new THREE.BufferAttribute(particlesUvArray, 2))
 particles.geometry.setAttribute('aColor', baseGeometry.instance.attributes.color_1)
 particles.geometry.setAttribute('aSize', new THREE.BufferAttribute(sizesArray, 1))
-
-
 
 
 // Material
@@ -255,7 +228,7 @@ particles.material = new THREE.ShaderMaterial({
     fragmentShader: particlesFragmentShader,
     uniforms:
     {
-        uSize: new THREE.Uniform(0.05),
+        uSize: new THREE.Uniform(0.028),
         uResolution: new THREE.Uniform(new THREE.Vector2(sizes.width * sizes.pixelRatio, sizes.height * sizes.pixelRatio)),
         uParticlesTexture: new THREE.Uniform(),
     },
@@ -267,31 +240,48 @@ particles.material = new THREE.ShaderMaterial({
 particles.points = new THREE.Points(particles.geometry, particles.material)
 scene.add(particles.points)
 
-console.log(particles)
-
 /**
  * Tweaks
  */
-gui.addColor(debugObject, 'clearColor').onChange(() => { renderer.setClearColor(debugObject.clearColor) })
-gui.add(particles.material.uniforms.uSize, 'value').min(0).max(1).step(0.001).name('uSize')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldInfluence, 'value')
-    .min(0)
-    .max(1)
-    .step(0.001)
-    .name('uFlowFieldInfluence')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldStrength, 'value')
-    .min(0)
-    .max(10)
-    .step(0.1)
-    .name('uFlowFieldStrength')
-gui
-    .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency, 'value')
-    .min(0)
-    .max(1)
-    .step(0.01)
-    .name('uFlowFieldFrequency')
+// gui.addColor(debugObject, 'clearColor').onChange(() => { renderer.setClearColor(debugObject.clearColor) })
+// gui.add(particles.material.uniforms.uSize, 'value').min(0).max(1).step(0.001).name('uSize')
+// gui
+//     .add(gpgpu.particlesVariable.material.uniforms.uFlowFieldFrequency, 'value')
+//     .min(0)
+//     .max(1)
+//     .step(0.01)
+//     .name('uFlowFieldFrequency')
+
+/**
+ * Text
+ */
+const textMaterial = new THREE.MeshStandardMaterial({
+    color: 0xFFFFFF,
+    depthTest: false,
+})
+const text1 = new Text()
+const text2 = new Text()
+const text3 = new Text()
+const text4 = new Text()
+scene.add(text1, text2, text3, text4)
+
+text1.text = 'THE SHOW IS OVER. THE AUDIENCE GET UP TO LEAVE THEIR SEATS.'
+text1.fontSize = 0.2
+text1.position.x = -4
+text1.position.y = 0.5
+
+text2.text = 'TIME TO COLLECT THEIR COATS AND GO HOME.'
+text2.fontSize = 0.2
+text2.position.x = -4
+
+text3.text = 'THEY TURN AROUND. NO MORE COATS AND NO MORE HOME.'
+text3.fontSize = 0.2
+text3.position.x = -4
+text3.position.y = -0.5
+
+
+
+
 
 /**
  * Animate
@@ -339,17 +329,11 @@ const tick = () => {
 
     // Update controls
     controls.update()
-
-    // rotation of controls
-    // controls.minAzimuthAngle += deltaTime * 0.02
-    // controls.maxAzimuthAngle += deltaTime * 0.02
-    // controls.update()
-
+    // console.log(controls)
 
     // put time into shader
     gpgpu.particlesVariable.material.uniforms.uTime.value = elapsedTime
     gpgpu.particlesVariable.material.uniforms.uDeltaTime.value = deltaTime
-
 
     //gpgpu update
     gpgpu.computation.compute()

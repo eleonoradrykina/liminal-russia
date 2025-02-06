@@ -32,18 +32,17 @@ const handleResize = (camera, renderer, particles) => {
 //set scene with the camera and orbit controls
 const setScene = (orbitcontrols = true, canvas) => {
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(35, sizes.width / sizes.height, 0.001, 1000)
-    camera.position.set(4.5, 2, 12)
+    const camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.001, 1000)
+    camera.position.set(12, 0, 20)
     scene.add(camera)
     if (orbitcontrols) {
         const controls = new OrbitControls(camera, canvas)
         controls.enableDamping = true
-        // controls.enableZoom = false
         controls.enablePan = false
+        controls.maxDistance = 50
+        controls.minDistance = 5
         controls.maxPolarAngle = Math.PI / 2
         controls.minPolarAngle = Math.PI / 3
-        // controls.minAzimuthAngle = 0.01
-        // controls.maxAzimuthAngle = 0.01
         return { scene, camera, controls }
     } else {
         return { scene, camera }

@@ -20,7 +20,7 @@ export default function Experience()
         <Physics debug={ false }>
             <Lights />
             <Corridor />
-            <Player  />
+            {/* <Player  /> */}
         </Physics>
     </>
 }
