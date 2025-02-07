@@ -10,13 +10,20 @@ export class ParticlesScene extends Scene {
     constructor({ renderer, nbInstances = 100000 }) {
         super({ renderer })
         this.nbInstances = nbInstances
+        // Initialize time tracking objects
+        this.timeDelta = {
+            current: 0
+        }
+        this.timeLast = {
+            current: 0.09
+        }
     }
 
     init() {
         this.section = document.querySelector('#shadowed-particles-scene')
 
         // particle system radius
-        this.radius = 50
+        this.radius = 70
 
         this.renderer.camera.position.z = 375
 
@@ -95,6 +102,45 @@ export class ParticlesScene extends Scene {
         this.wrappingBox?.remove()
     }
 
+    addEvents() {
+        this.mouse = {
+            current: new Vec2(),
+            lerped: new Vec2(),
+            clamp: {
+                min: new Vec2(-0.5),
+                max: new Vec2(0.5),
+            },
+        }
+
+        this._onPointerMoveHandler = this.onPointerMove.bind(this)
+        window.addEventListener('mousemove', this._onPointerMoveHandler)
+        window.addEventListener('touchmove', this._onPointerMoveHandler)
+    }
+
+    removeEvents() {
+        window.removeEventListener('mousemove', this._onPointerMoveHandler)
+        window.removeEventListener('touchmove', this._onPointerMoveHandler)
+    }
+
+    onPointerMove(e) {
+        const { clientX, clientY } = e.targetTouches && e.targetTouches.length ? e.targetTouches[0] : e
+        const { width, height } = this.renderer.boundingRect
+        const scroll = window.pageYOffset
+
+        // normalized between -0.5 and 0.5
+        this.mouse.current.set(
+            (clientX - width * 0.5) / width,
+            -(clientY - (this.offsetTop - scroll) - height * 0.5) / height
+        )
+
+        // clamp
+        this.mouse.current.clamp(this.mouse.clamp.min, this.mouse.clamp.max)
+
+        // multiply by camera visible size
+        this.mouse.current.x *= this.visibleSize.width
+        this.mouse.current.y *= this.visibleSize.height
+    }
+
     async createComputePasses() {
         this.initComputeBuffer = new BufferBinding({
             label: 'Compute particles init buffer',
@@ -135,7 +181,11 @@ export class ParticlesScene extends Scene {
                         },
                         maxLife: {
                             type: 'f32',
-                            value: 60, // in frames
+                            value: 100.0,
+                        },
+                        deltaTime: {
+                            type: 'f32',
+                            value: this.timeDelta.current,
                         },
                         mouse: {
                             type: 'vec2f',
@@ -274,46 +324,16 @@ export class ParticlesScene extends Scene {
         })
     }
 
-    addEvents() {
-        this.mouse = {
-            current: new Vec2(),
-            lerped: new Vec2(),
-            clamp: {
-                min: new Vec2(-0.5),
-                max: new Vec2(0.5),
-            },
-        }
-
-        this._onPointerMoveHandler = this.onPointerMove.bind(this)
-        window.addEventListener('mousemove', this._onPointerMoveHandler)
-        window.addEventListener('touchmove', this._onPointerMoveHandler)
-    }
-
-    removeEvents() {
-        window.removeEventListener('mousemove', this._onPointerMoveHandler)
-        window.removeEventListener('touchmove', this._onPointerMoveHandler)
-    }
-
-    onPointerMove(e) {
-        const { clientX, clientY } = e.targetTouches && e.targetTouches.length ? e.targetTouches[0] : e
-        const { width, height } = this.renderer.boundingRect
-        const scroll = window.pageYOffset
-
-        // normalized between -0.5 and 0.5
-        this.mouse.current.set(
-            (clientX - width * 0.5) / width,
-            -(clientY - (this.offsetTop - scroll) - height * 0.5) / height
-        )
-
-        // clamp
-        this.mouse.current.clamp(this.mouse.clamp.min, this.mouse.clamp.max)
-
-        // multiply by camera visible size
-        this.mouse.current.x *= this.visibleSize.width
-        this.mouse.current.y *= this.visibleSize.height
-    }
-
     onRender() {
+        const currentTime = performance.now() / 1000
+        this.timeDelta.current = currentTime - this.timeLast.current
+        this.timeLast.current = currentTime
+
+        // Debug log to see the structure
+        // console.log('ComputeBindGroup:', this.computeBindGroup)
+        this.computeBindGroup.bindings[2].inputs.deltaTime._value = this.timeDelta.current
+        // console.log('Delta:', this.timeDelta.current)
+
         this.mouse.lerped.lerp(this.mouse.current, 0.5)
     }
 }

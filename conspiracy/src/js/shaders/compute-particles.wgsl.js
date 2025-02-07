@@ -73,12 +73,16 @@ export const computeParticles = /* wgsl */ `
 
       var vPos: vec3f = particles[index].position.xyz;
       var life: f32 = particles[index].position.w;
-      life -= 1.0;
+     life -= params.deltaTime * 10.0;
+    // life -= 0.01*10.0;
+
 
       var vVel: vec3f = particles[index].velocity.xyz;
 
       vVel += curlNoise(vPos * 0.02, 0.0, 0.05);
-      vVel *= 0.4;
+    vVel *= params.deltaTime *12.0;
+    //  vVel *= 0.009*12.0;
+
 
       particles[index].velocity = vec4(vVel, particles[index].velocity.w);
       
@@ -101,11 +105,12 @@ export const computeParticles = /* wgsl */ `
         // apply new curl noise position and life
         // accounting for mouse position
         let delta: vec3f = mouse - vPos;
-        let friction: f32 = 100.0;
+        let friction: f32 = 0.1;
+        //0.009 *100 
         
-        vPos += delta * 1.0 / friction;
+        vPos += delta * (params.deltaTime * friction);
+        // vPos += delta * (1.0 / friction); //0.01
         vPos += vVel;
-
         particles[index].position = vec4(vPos, life);
       }
     }
