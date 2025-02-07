@@ -80,7 +80,7 @@ export const computeParticles = /* wgsl */ `
       var vVel: vec3f = particles[index].velocity.xyz;
 
       vVel += curlNoise(vPos * 0.02, 0.0, 0.05);
-    vVel *= params.deltaTime *12.0;
+    vVel *= params.deltaTime *10.5;
     //  vVel *= 0.009*12.0;
 
 
