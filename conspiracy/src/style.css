@@ -476,6 +476,27 @@
     position: relative;
     z-index: 1;
   }
+
+  .theory {
+    position: absolute;
+    z-index: 1000;
+    cursor: default;
+  }
+
+  .theory-1 {
+    top: 0;
+    right: 2rem;
+  }
+
+  .theory-2 {
+    bottom: 2rem;
+    left: 2rem;
+  }
+
+  .theory-3 {
+    bottom: 2rem;
+    right: 2rem;
+  }
 }
 
 @media screen and (max-width: 1024px) {
@@ -507,6 +528,7 @@
     grid-column: 2 / -2;
     justify-content: center;
   }
+
 }
 
 @media screen and (max-width: 720px) {

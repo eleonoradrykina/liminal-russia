@@ -70,24 +70,33 @@ export const computeParticles = /* wgsl */ `
 
     if(index < arrayLength(&particles)) {
       let fIndex: f32 = f32(index);
+      let mouse = vec3(params.mouse, 0);
+      let normalizedMouse = vec3(params.normalizedMouse, 0);
 
       var vPos: vec3f = particles[index].position.xyz;
       var life: f32 = particles[index].position.w;
-     life -= params.deltaTime * 10.0;
-    // life -= 0.01*10.0;
-
+      life -= params.deltaTime * 10.0;
 
       var vVel: vec3f = particles[index].velocity.xyz;
 
-      vVel += curlNoise(vPos * 0.02, 0.0, 0.05);
-    vVel *= params.deltaTime *10.5;
-    //  vVel *= 0.009*12.0;
+      var mouseFactorX: f32 = abs(normalizedMouse.x)*1.5 + 1.025;
 
+      vVel += curlNoise(vPos * 0.015*mouseFactorX, 0.0, 0.05);
+
+      //quadrant 1 
+      if (normalizedMouse.x < 0 && normalizedMouse.y < 0) {
+         vVel *= params.deltaTime *10.0;
+      }
+      //quadrant 3
+      if (normalizedMouse.x > 0.25 && normalizedMouse.y > 0) {
+         vVel *= params.deltaTime *10.0;
+      } else {
+        vVel *= params.deltaTime *12.0;
+      }
+     
 
       particles[index].velocity = vec4(vVel, particles[index].velocity.w);
       
-      let mouse = vec3(params.mouse, 0);
-
       if (life <= 0.0) {
         // respawn particle to original position + mouse position
         let newPosition = initParticles[index].position.xyz + mouse;

@@ -7,15 +7,15 @@ import { ShadowMap } from './ShadowMap'
 // import { wrappingBoxFs, wrappingBoxVs } from '../shaders/shadowed-wrapping-box.wgsl'
 
 export class ParticlesScene extends Scene {
-    constructor({ renderer, nbInstances = 100000 }) {
+    constructor({ renderer, nbInstances = 1000000 }) {
         super({ renderer })
         this.nbInstances = nbInstances
-        // Initialize time tracking objects
+        // Initialize time tracking objects with proper initial values
         this.timeDelta = {
-            current: 0
+            current: 0.016 // Initial delta time (roughly one frame at 60fps)
         }
         this.timeLast = {
-            current: 0.09
+            current: performance.now() / 1000 // Start with current time
         }
     }
 
@@ -23,7 +23,7 @@ export class ParticlesScene extends Scene {
         this.section = document.querySelector('#shadowed-particles-scene')
 
         // particle system radius
-        this.radius = 70
+        this.radius = 10
 
         this.renderer.camera.position.z = 375
 
@@ -105,6 +105,7 @@ export class ParticlesScene extends Scene {
     addEvents() {
         this.mouse = {
             current: new Vec2(),
+            normalized: new Vec2(),
             lerped: new Vec2(),
             clamp: {
                 min: new Vec2(-0.5),
@@ -135,6 +136,9 @@ export class ParticlesScene extends Scene {
 
         // clamp
         this.mouse.current.clamp(this.mouse.clamp.min, this.mouse.clamp.max)
+
+        //save normalized for shaders
+        this.mouse.normalized.set(this.mouse.current.x, this.mouse.current.y)
 
         // multiply by camera visible size
         this.mouse.current.x *= this.visibleSize.width
@@ -190,6 +194,10 @@ export class ParticlesScene extends Scene {
                         mouse: {
                             type: 'vec2f',
                             value: this.mouse.lerped,
+                        },
+                        normalizedMouse: {
+                            type: 'vec2f',
+                            value: this.mouse.normalized,
                         },
                     },
                 },
@@ -268,7 +276,7 @@ export class ParticlesScene extends Scene {
             struct: {
                 size: {
                     type: 'f32',
-                    value: 0.7,
+                    value: 0.5,
                 },
             },
         })
@@ -292,15 +300,19 @@ export class ParticlesScene extends Scene {
                         struct: {
                             lightColor: {
                                 type: 'vec3f',
-                                value: new Vec3(255 / 255, 240 / 255, 97 / 255),
+                                value: new Vec3(163 / 255, 235 / 255, 255 / 255),
                             },
                             darkColor: {
                                 type: 'vec3f',
-                                value: new Vec3(184 / 255, 162 / 255, 9 / 255),
+                                value: new Vec3(10 / 255, 41 / 255, 50 / 255),
                             },
                             shadowIntensity: {
                                 type: 'f32',
                                 value: 0.75,
+                            },
+                            mouse: {
+                                type: 'vec2f',
+                                value: this.mouse.normalized,
                             },
                         },
                     },
@@ -326,13 +338,13 @@ export class ParticlesScene extends Scene {
 
     onRender() {
         const currentTime = performance.now() / 1000
+
         this.timeDelta.current = currentTime - this.timeLast.current
         this.timeLast.current = currentTime
 
-        // Debug log to see the structure
-        // console.log('ComputeBindGroup:', this.computeBindGroup)
+
+        //updating compute shader bind group
         this.computeBindGroup.bindings[2].inputs.deltaTime._value = this.timeDelta.current
-        // console.log('Delta:', this.timeDelta.current)
 
         this.mouse.lerped.lerp(this.mouse.current, 0.5)
     }

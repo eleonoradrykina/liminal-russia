@@ -61,12 +61,29 @@ export const shadowedParticlesFs = /* wgsl */ `
   
   @fragment fn main(fsInput: VSOutput) -> @location(0) vec4f {
     ${discardParticleFragment}
-  
+    //retrieveing mouse position
+    let mouse = shading.mouse;
+
+
     // clamp velocity
     let velocity = clamp(length(fsInput.velocity.xyz), 0.0, 1.0);
     
     // use it to mix between our 2 colors
     var color: vec3f = mix(shading.darkColor, shading.lightColor, vec3(velocity));
+
+    //if mouse is in 1st quadrant, color is red
+    if (mouse.x < 0 && mouse.y < 0) {
+        var lightColor: vec3f = vec3f(1.0, 0.0, 0.0);
+        var darkColor: vec3f = vec3f(0.25, 0.0, 0.0);
+        color = mix(darkColor, lightColor, vec3(velocity));
+    }
+    //if mouse is in 3rd quadrant, color is grey
+    if (mouse.x > 0.25 && mouse.y > 0) {
+        var lightColor: vec3f = vec3f(0.5, 0.5, 0.5);
+        var darkColor: vec3f = vec3f(0.1, 0.1, 0.1);
+        color = mix(darkColor, lightColor, vec3(velocity));
+    }
+  
     
     var visibility = getPCFSoftShadows(fsInput.shadowPosition);
     visibility = clamp(visibility, 1.0 - clamp(shading.shadowIntensity, 0.0, 1.0), 1.0);
