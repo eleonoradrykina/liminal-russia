@@ -6,10 +6,13 @@ import { Perf } from 'r3f-perf'
 import Lights from './Lights.jsx'
 import Corridor from './Corridor.jsx'
 import Player from './Player.jsx'
-import { useRef } from 'react'
-
+import { useRef, useState } from 'react'
+import MovingWalls from './MovingWalls.jsx'
 export default function Experience()
 {
+    // const gameStates = ['A', 'B', 'C', 'D']
+    const [gameState, setGameState] = useState('A')
+
     return <>
         <Perf position="top-left" />
         <EffectComposer>
@@ -20,7 +23,8 @@ export default function Experience()
         <Physics debug={ false }>
             <Lights />
             <Corridor />
-            {/* <Player  /> */}
+            <MovingWalls gameState={gameState} />
+            <Player currentState={gameState} changeState={setGameState}/>
         </Physics>
     </>
 }

@@ -6,10 +6,11 @@ import { useControls } from 'leva'
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
+import WallVertical from './Walls/WallVertical.jsx'
+import WallHorizontal from './Walls/WallHorizontal.jsx'
+
 import CustomShaderMaterial from 'three-custom-shader-material'
 
-import wallpaperVertexShader from './shaders/wallpaper/vert.glsl'
-import wallpaperFragmentShader from './shaders/wallpaper/frag.glsl'
 import wallpaper2VertexShader from './shaders/wallpaper2/vert.glsl'
 import wallpaper2FragmentShader from './shaders/wallpaper2/frag.glsl'
 import ceilingVertexShader from './shaders/ceiling/vert.glsl'
@@ -18,11 +19,13 @@ import carpetVertexShader from './shaders/carpet/vert.glsl'
 import carpetFragmentShader from './shaders/carpet/frag.glsl'
 
 const boxGeometry = new THREE.BoxGeometry(1,1,1)
+const planeGeometry = new THREE.PlaneGeometry(1.6, 1.6, 12,12)
+
 
 
 const ceilingMaterial = new THREE.MeshStandardMaterial({ color: '#F2E1AF' })
 const wallMaterial = new THREE.MeshStandardMaterial({ color: '#968D24' })
-const wallMaterial2 = new THREE.MeshStandardMaterial({ color: '#615A04' })
+
 
 
 function Floor({size = 16}) {
@@ -198,77 +201,12 @@ function Bounds({ length = 8}) {
 
 }
 
-function WallHorizontal({position = [0, 0, 0], length=14}) {
-    const materialRef = useRef()
-
-    useFrame((state) => {
-        if (materialRef.current) {
-            materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
-        }
-    })
-
-    return <>
-
-  
-        <RigidBody type="fixed" restitution={0.2} friction={0}>
-                <mesh geometry = {boxGeometry}
-                    position={ position } 
-                    scale = { [length, 2.5, 0.3] }
-                    receiveShadow
-                    castShadow
-                >
-
-                    <CustomShaderMaterial
-                        ref={materialRef}   
-                        baseMaterial={THREE.MeshPhysicalMaterial}
-                        vertexShader={wallpaperVertexShader} 
-                        fragmentShader={wallpaperFragmentShader} 
-                        uniforms={{
-                            uTime: { value: 0 },
-                            aspectRatio: { value: length / 2.5 },
-            
-                        }}
-                        // Base material properties
-                        flatShading
-                        color={0x968D24}
-                    />
-                </mesh>
-            </RigidBody>
-          </>
-}
-
-function WallVertical({position = [0, 0, 0], length=14}) {
-    return <RigidBody type="fixed" restitution={0.2} friction={0}>
-            <mesh geometry = {boxGeometry}
-                position={ position } 
-                scale = { [0.3, 2.5, length] }
-                material ={ wallMaterial2 }
-                receiveShadow
-                castShadow
-            />
-        </RigidBody>
-}
 export default function Corridor() {
 
 
     return <>
         <Floor size={ 16 }/>
         {/* <Ceiling size={ 16 }/> */}
-        {/* GROUP A*/}
-        {/* <WallHorizontal position={ [-9.7, 0.75, -4] } length = {12} />
-        <WallVertical position={ [-3.85, 0.75, -8.15] }length = {8}/> */}
-
-        {/* GROUP B*/}
-        {/* <WallHorizontal position={ [-7.0, 0.75, -20] }length = {10 } />
-        <WallVertical position={ [-6.6, 0.75, -25.0] }length = {9.75}/> */}
-
-        {/* GROUP C*/}
-        {/* <WallHorizontal position={ [12.7, 0.75, -22] } length = {6}/>
-        <WallVertical position={ [6.6, 0.75, -20.65] }length = {13}/>
-        <WallHorizontal position={ [8.7, 0.75, -14] } length = {14}/> */}
-
-        {/* GROUP D*/}
-        {/* <WallVertical position={ [6.6, 0.75, -2.15] }length = {8}/> */}
 
         {/* BASE */}
 
@@ -287,7 +225,20 @@ export default function Corridor() {
         <WallVertical position={ [-10.0, 0.75, -4.53] }length = {7.0}/> 
         <WallHorizontal position={[-7.42, 0.75, -0.872]  } length = {5.45}/>
 
-        
+        {/* link spot plane*/}
+        <mesh geometry = {planeGeometry}
+            position={ [-7.2, 0.76, -4.0] }
+            rotation={ [-Math.PI / 2, 0, 0] }
+        >
+            <meshStandardMaterial color={'red'}/>
+        </mesh>
+
+         <mesh geometry = {planeGeometry}
+            position={ [12.0, 0.76, -26.5] }
+            rotation={ [-Math.PI / 2, 0, 0] }
+        >
+            <meshStandardMaterial color={'red'}/>
+        </mesh>
 
         <Bounds length={ 16} />
     </>
