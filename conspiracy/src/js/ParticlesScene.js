@@ -1,10 +1,23 @@
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Scene } from './Scene'
-import { BindGroup, BoxGeometry, BufferBinding, ComputePass, Mesh, PlaneGeometry, Vec2, Vec3 } from 'gpu-curtains'
+import {
+    buildShaders,
+    BindGroup,
+    BoxGeometry,
+    BufferBinding,
+    ComputePass,
+    GLTFLoader,
+    GLTFScenesManager,
+    Mesh,
+    PlaneGeometry,
+    Vec2,
+    Vec3,
+} from 'gpu-curtains'
 import { particlesDepthPassShaders, shadowedParticlesFs, shadowedParticlesVs } from './shaders/shadowed-particles.wgsl'
+import { wrappingBoxFs, wrappingBoxVs } from './shaders/shadowed-wrapping-box.wgsl'
 import { computeParticles } from './shaders/compute-particles.wgsl'
 import { ShadowMap } from './ShadowMap'
-// import { wrappingBoxFs, wrappingBoxVs } from '../shaders/shadowed-wrapping-box.wgsl'
+
 
 export class ParticlesScene extends Scene {
     constructor({ renderer, nbInstances = 1000000 }) {
@@ -26,6 +39,7 @@ export class ParticlesScene extends Scene {
         this.radius = 10
 
         this.renderer.camera.position.z = 375
+
 
         this.setSizeDependentValues()
         this.renderer.onResize(this.setSizeDependentValues.bind(this))
@@ -88,7 +102,8 @@ export class ParticlesScene extends Scene {
 
         this.createComputePasses()
         this.createParticles()
-        // this.createWrappingBox()
+        this.loadGLTF()
+        this.createWrappingBox()
     }
 
     destroyWebGPU() {
@@ -143,6 +158,73 @@ export class ParticlesScene extends Scene {
         // multiply by camera visible size
         this.mouse.current.x *= this.visibleSize.width
         this.mouse.current.y *= this.visibleSize.height
+    }
+
+    async loadGLTF() {
+        this.gltfLoader = new GLTFLoader()
+        this.gltf = await this.gltfLoader.loadFromUrl('./table.glb')
+
+        this.gltfScenesManager = new GLTFScenesManager({
+            renderer: this.renderer,
+            gltf: this.gltf,
+        })
+        console.log(this.gltf.materials[0])
+
+        const material = this.gltf.materials[0]
+
+        this.gltfMeshes = this.gltfScenesManager.addMeshes((meshDescriptor) => {
+            const { parameters } = meshDescriptor
+
+            parameters.shaders = buildShaders(meshDescriptor)
+
+            // const lightPosition = new Vec3(0.0, 0.0, 375.0)
+            // const lightPositionLength = lightPosition.length()
+
+            // parameters.uniforms = {
+            //     ...parameters.uniforms,
+            //     ...{
+            //         ambientLight: {
+            //             struct: {
+            //                 intensity: {
+            //                     type: 'f32',
+            //                     value: 0.35,
+            //                 },
+            //                 color: {
+            //                     type: 'vec3f',
+            //                     value: new Vec3(1),
+            //                 },
+            //             },
+            //         },
+            //         pointLight: {
+            //             struct: {
+            //                 position: {
+            //                     type: 'vec3f',
+            //                     value: lightPosition,
+            //                 },
+            //                 intensity: {
+            //                     type: 'f32',
+            //                     value: lightPositionLength * 0.75,
+            //                 },
+            //                 color: {
+            //                     type: 'vec3f',
+            //                     value: new Vec3(1),
+            //                 },
+            //                 range: {
+            //                     type: 'f32',
+            //                     value: lightPositionLength * 2.5,
+            //                 },
+            //             },
+            //         },
+            //     },
+            // }
+        })
+
+
+        this.gltfMeshes.forEach((mesh) => {
+            mesh.scale.set(100.0, 100.0, 100.0)
+            mesh.position.y = -170
+        })
+
     }
 
     async createComputePasses() {
@@ -300,11 +382,11 @@ export class ParticlesScene extends Scene {
                         struct: {
                             lightColor: {
                                 type: 'vec3f',
-                                value: new Vec3(163 / 255, 235 / 255, 255 / 255),
+                                value: new Vec3(255 / 255, 237 / 255, 146 / 255),
                             },
                             darkColor: {
                                 type: 'vec3f',
-                                value: new Vec3(10 / 255, 41 / 255, 50 / 255),
+                                value: new Vec3(109 / 255, 99 / 255, 50 / 255),
                             },
                             shadowIntensity: {
                                 type: 'f32',
@@ -336,12 +418,81 @@ export class ParticlesScene extends Scene {
         })
     }
 
+    createWrappingBox() {
+        this.wrappingBox = new Mesh(
+            this.renderer,
+            this.shadowMap.patchShadowReceivingParameters({
+                label: 'Shadowed wrapping box',
+                geometry: new BoxGeometry(),
+                frustumCulling: false,
+                cullMode: 'front',
+                shaders: {
+                    vertex: {
+                        code: wrappingBoxVs,
+                    },
+                    fragment: {
+                        code: wrappingBoxFs,
+                    },
+                },
+                uniforms: {
+                    shading: {
+                        struct: {
+                            color: {
+                                type: 'vec3f',
+                                value: new Vec3(173 / 256, 188 / 256, 188 / 256),
+                            },
+                            shadowIntensity: {
+                                type: 'f32',
+                                value: 0.35,
+                            },
+                        },
+                    },
+                    ambientLight: {
+                        struct: {
+                            color: {
+                                type: 'vec3f',
+                                value: new Vec3(1.0, 0.99, 0.9),
+                            },
+                            intensity: {
+                                type: 'f32',
+                                value: 0.35,
+                            },
+                        },
+                    },
+                    directionalLight: {
+                        struct: {
+                            intensity: {
+                                type: 'f32',
+                                value: 1.0,
+                            },
+                            color: {
+                                type: 'vec3f',
+                                value: new Vec3(1.0, 0.99, 0.9),
+                            },
+                        },
+                    },
+                },
+            })
+        )
+
+        const setWrappingBoxScale = () => {
+            this.wrappingBox.scale.x = this.visibleSize.width * 0.5
+            this.wrappingBox.scale.y = this.visibleSize.height * 0.5
+        }
+
+        this.wrappingBox.scale.z = this.radius * 10.0
+        this.wrappingBox.position.z = -this.wrappingBox.scale.z
+
+        setWrappingBoxScale()
+
+        this.wrappingBox.onAfterResize(setWrappingBoxScale)
+    }
+
     onRender() {
         const currentTime = performance.now() / 1000
 
         this.timeDelta.current = currentTime - this.timeLast.current
         this.timeLast.current = currentTime
-
 
         //updating compute shader bind group
         this.computeBindGroup.bindings[2].inputs.deltaTime._value = this.timeDelta.current

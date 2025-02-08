@@ -73,12 +73,12 @@ export const shadowedParticlesFs = /* wgsl */ `
 
     //if mouse is in 1st quadrant, color is red
     if (mouse.x < 0 && mouse.y < 0) {
-        var lightColor: vec3f = vec3f(1.0, 0.0, 0.0);
-        var darkColor: vec3f = vec3f(0.25, 0.0, 0.0);
+        var lightColor: vec3f = vec3f(1.0, 0.79, 0.8);
+        var darkColor: vec3f = vec3f(0.5, 0.4, 0.4);
         color = mix(darkColor, lightColor, vec3(velocity));
     }
-    //if mouse is in 3rd quadrant, color is grey
-    if (mouse.x > 0.25 && mouse.y > 0) {
+    //if mouse is in 4th quadrant, color is grey
+    if (mouse.x > 0.25 && mouse.y < 0) {
         var lightColor: vec3f = vec3f(0.5, 0.5, 0.5);
         var darkColor: vec3f = vec3f(0.1, 0.1, 0.1);
         color = mix(darkColor, lightColor, vec3(velocity));

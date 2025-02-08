@@ -85,13 +85,13 @@ export const computeParticles = /* wgsl */ `
 
       //quadrant 1 
       if (normalizedMouse.x < 0 && normalizedMouse.y < 0) {
-         vVel *= params.deltaTime *10.0;
+         vVel *= params.deltaTime *12.0;
       }
       //quadrant 3
       if (normalizedMouse.x > 0.25 && normalizedMouse.y > 0) {
          vVel *= params.deltaTime *10.0;
       } else {
-        vVel *= params.deltaTime *12.0;
+        vVel *= params.deltaTime *8.0;
       }
      
 
