@@ -2,13 +2,13 @@ import './style.css'
 import ReactDOM from 'react-dom/client'
 import { Canvas } from '@react-three/fiber'
 import Experience from './backrooms/Experience.jsx'
+import UI from './ui/UI.jsx'
 import { KeyboardControls } from '@react-three/drei'
-import { Leva } from 'leva'
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
 root.render(
     <>
-    <Leva />
+    <UI />
     <KeyboardControls
         map={ [
             { name: 'forward', keys: ['KeyW', 'ArrowUp'] },

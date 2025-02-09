@@ -1,8 +1,10 @@
-import { RigidBody, useRapier } from '@react-three/rapier'
+import { RigidBody, useRapier, CapsuleCollider } from '@react-three/rapier'
 import { useFrame } from '@react-three/fiber'
-import { useKeyboardControls, PerspectiveCamera } from '@react-three/drei'
+import { useKeyboardControls } from '@react-three/drei'
 import { useRef, useEffect, useState } from 'react'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { createPortal } from 'react-dom'
 
 export default function Player({ currentState, changeState }) {
 
@@ -12,11 +14,17 @@ export default function Player({ currentState, changeState }) {
     const [ subscribeKeys, getKeys ] = useKeyboardControls()
     const { rapier, world } = useRapier()
 
+    const baltica = useGLTF('./baltica.glb')
+    baltica.scene.children.forEach(child => {
+        child.castShadow = true
+    })
+
     const [ smoothedCameraPosition ] = useState(() => new THREE.Vector3(0, 0.65, 2.25))  
     const [ smoothedCameraTarget ] = useState(() => new THREE.Vector3(0, 0.25, -2.25))
     const [ angle, setAngle ] = useState(Math.PI / 2)
     const [isInLinkMemoriesSpot, setIsInLinkMemoriesSpot] = useState(false)
     const [isInLinkConspiracySpot, setIsInLinkConspiracySpot] = useState(false)
+    const [colliderType, setColliderType] = useState('ball')
 
     const checkChangeState = (position) => {
         //first position change is at x between 10 and 15, z between -8 and -7.2 
@@ -38,6 +46,7 @@ export default function Player({ currentState, changeState }) {
     }
 
     const visitLinkMemories = () => {
+        // window.open('https://memories-jet-xi.vercel.app/', '_parent')
         window.open('https://memories-jet-xi.vercel.app/', '_blank')
     }
 
@@ -47,12 +56,12 @@ export default function Player({ currentState, changeState }) {
 
     const checkLinkSpot = (position) => {
         //memories link spot is at x -7.2, z -4.0
-        const inMemoriesSpot = position.x > -7.4 && position.x < -7.0 && 
-                      position.z > -4.2 && position.z < -3.8
+        const inMemoriesSpot = position.x > -7.5 && position.x < -6.8 && 
+                      position.z > -5.0 && position.z < -3.5
         
         //conspiracy link spot is at x 7.2, z -4.0 (mirrored position)
-        const inConspiracySpot = position.x > 7.0 && position.x < 7.4 && 
-                      position.z > -4.2 && position.z < -3.8
+        const inConspiracySpot = position.x > 11.3 && position.x < 12.5 && 
+                      position.z > -27.0 && position.z < -26.0
         
         setIsInLinkMemoriesSpot(inMemoriesSpot)
         setIsInLinkConspiracySpot(inConspiracySpot)
@@ -60,16 +69,15 @@ export default function Player({ currentState, changeState }) {
 
     const jump = () => {
         const origin = body.current.translation()
-        origin.y -= 0.31
+        origin.y -= 0.1
         const direction = { x: 0, y: -1, z: 0 }
 
         const ray = new rapier.Ray(origin, direction)
         const hit = world.castRay(ray, 10, true)
 
-        if( hit.timeOfImpact < 0.15 ) {
-            body.current.applyImpulse({ x: 0, y: 0.15, z: 0 })
+        if( hit.timeOfImpact < 0.01 ) {
+            body.current.applyImpulse({ x: 0, y: 0.05, z: 0 })
         }
-
 
     }
 
@@ -100,11 +108,61 @@ export default function Player({ currentState, changeState }) {
             }
         }
 
+        // Add UI overlay
+        const overlay = document.createElement('div')
+        overlay.style.position = 'fixed'
+        overlay.style.top = '50%'
+        overlay.style.left = '50%'
+        overlay.style.transform = 'translate(-50%, -50%)'
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+        overlay.style.color = 'white'
+        overlay.style.padding = '1rem 2rem'
+        overlay.style.borderRadius = '8px'
+        overlay.style.fontFamily = 'Arial, sans-serif'
+        overlay.style.zIndex = '1000'
+        overlay.style.display = 'none'
+        overlay.textContent = 'Press "Enter" to visit'
+        document.body.appendChild(overlay)
+
+        // Show/hide overlay based on player position
+        if (isInLinkMemoriesSpot || isInLinkConspiracySpot) {
+            overlay.style.display = 'block'
+        }
+
         window.addEventListener('keydown', handleKeyPress)
+        
         return () => {
             window.removeEventListener('keydown', handleKeyPress)
+            document.body.removeChild(overlay)
         }
     }, [isInLinkMemoriesSpot, isInLinkConspiracySpot])
+
+    useEffect(() => {
+        // Add UI overlay
+        const button = document.createElement('button')
+        button.style.position = 'fixed'
+        button.style.bottom = '20px'
+        button.style.right = '20px'
+        button.style.padding = '8px 16px'
+        button.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+        button.style.color = 'white'
+        button.style.border = '1px solid white'
+        button.style.borderRadius = '4px'
+        button.style.cursor = 'pointer'
+        button.style.fontFamily = 'Arial, sans-serif'
+        button.style.zIndex = '1000'
+        button.textContent = `Collider: ${colliderType}`
+
+        button.onclick = () => {
+            setColliderType(prev => prev === 'ball' ? 'hull' : 'ball')
+        }
+
+        document.body.appendChild(button)
+        
+        return () => {
+            document.body.removeChild(button)
+        }
+    }, [colliderType])
 
     useFrame((state, delta) => {
     
@@ -114,7 +172,7 @@ export default function Player({ currentState, changeState }) {
         const { forward, backward, left, right, jump } = getKeys()
 
         // const impulseStrength = 0.1 * delta
-        const impulseStrength = 0.25 * delta
+        const impulseStrength = 0.15 * delta
 
         const direction = new THREE.Vector3()
         const bodyPosition = body.current.translation()
@@ -123,23 +181,23 @@ export default function Player({ currentState, changeState }) {
             direction.x = -Math.cos(angle) * impulseStrength
             direction.z = -Math.sin(angle) * impulseStrength
             }
-        if (backward) {
+        if (backward)  {
             direction.x = Math.cos(angle) * impulseStrength
             direction.z = Math.sin(angle) * impulseStrength
             }
         if (left) {
-            if ((bodyPosition.x > -15.5 ) &&
-             (bodyPosition.x < 15.5) &&
-             (bodyPosition.z > -29.7) &&
-             (bodyPosition.z < 0.5)) {
+            if ((bodyPosition.x > -14.5 ) &&
+             (bodyPosition.x < 14.5) &&
+             (bodyPosition.z > -30.7) &&
+             (bodyPosition.z < 0.25)) {
             setAngle(angle - 0.3*delta)
             }
         }
         if (right) {
-            if ((bodyPosition.x > -15.5 ) &&
-             (bodyPosition.x < 15.5) &&
-             (bodyPosition.z > -29.7) &&
-             (bodyPosition.z < 0.5)) {
+            if ((bodyPosition.x > -14.5 ) &&
+             (bodyPosition.x < 14.5) &&
+             (bodyPosition.z > -30.7) &&
+             (bodyPosition.z < 0.25)) {
             setAngle(angle + 0.3*delta)
             }
         }
@@ -150,8 +208,7 @@ export default function Player({ currentState, changeState }) {
         const cameraPosition = new THREE.Vector3()
 
         cameraPosition.x = bodyPosition.x + Math.cos(angle) * radius
-        // cameraPosition.y = bodyPosition.y + 0.5
-        cameraPosition.y = bodyPosition.y + 50.5
+        cameraPosition.y = bodyPosition.y + 0.5
         cameraPosition.z = bodyPosition.z + Math.sin(angle) * radius
 
         const cameraTarget = new THREE.Vector3()
@@ -166,36 +223,24 @@ export default function Player({ currentState, changeState }) {
         state.camera.position.copy(smoothedCameraPosition)
         state.camera.lookAt(smoothedCameraTarget)
 
-        // console.log(angle)
+        // console.log(bodyPosition)
 
         checkChangeState(bodyPosition)
         checkLinkSpot(bodyPosition)
     })
 
     return <>
-    <RigidBody 
-        ref={ body }
-        canSleep={false} 
-        colliders="ball" 
-        restituition={ 0.2 } 
-        friction={ 1 } 
-        linearDamping={ 0.5}
-        angularDamping={ 0.5 }
-        position={ [0, 1, -0.5] }
-    >
-        <mesh castShadow>
-            <capsuleGeometry args={ [0.1, 0.15, 10, 12 ] } />
-            <meshStandardMaterial 
-                flatShading
-                color="#1e1e1e"
-                opacity={ 0.98 }
-                transparent
-                roughness={ 0.1 }
-                metalness={ 0.7 }
-                />
-        </mesh>
-    </RigidBody>
-
+        <RigidBody 
+            ref={ body }
+            canSleep={false} 
+            colliders={colliderType}
+            restituition={ 0.2 } 
+            friction={ 0.5 } 
+            linearDamping={ 0.5}
+            angularDamping={ 0.5 }
+            position={ [0, 1, -0.5] }
+        >
+            <primitive object={baltica.scene} scale={0.06}/>
+        </RigidBody>
     </>
-
 }

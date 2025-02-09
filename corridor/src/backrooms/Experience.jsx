@@ -1,6 +1,6 @@
 import { Bloom, ToneMapping, EffectComposer } from '@react-three/postprocessing'
 import { Physics } from '@react-three/rapier'
-import { OrbitControls} from '@react-three/drei'
+import { OrbitControls, Environment } from '@react-three/drei'
 import { Perf } from 'r3f-perf'
 
 import Lights from './Lights.jsx'
@@ -14,9 +14,14 @@ export default function Experience()
     const [gameState, setGameState] = useState('A')
 
     return <>
-        <Perf position="top-left" />
+        {/* <Perf position="top-left" /> */}
         <EffectComposer>
-        <Bloom luminanceThreshold={0.9} mipmapBlur intensity={0.67} />
+        <Environment 
+            preset="lobby" 
+            environmentIntensity={0.75}
+            backgroundIntensity={0.75}
+        />
+        <Bloom luminanceThreshold={0.95} mipmapBlur intensity={0.6} />
         <ToneMapping />
         </EffectComposer>
         <OrbitControls />

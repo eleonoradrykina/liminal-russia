@@ -1,7 +1,5 @@
 import * as THREE from 'three'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
-import { useControls } from 'leva'
-
 
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -17,9 +15,11 @@ import ceilingVertexShader from './shaders/ceiling/vert.glsl'
 import ceilingFragmentShader from './shaders/ceiling/frag.glsl'
 import carpetVertexShader from './shaders/carpet/vert.glsl'
 import carpetFragmentShader from './shaders/carpet/frag.glsl'
+import linkspotVertexShader from './shaders/linkspot/vert.glsl'
+import linkspotFragmentShader from './shaders/linkspot/frag.glsl'
 
 const boxGeometry = new THREE.BoxGeometry(1,1,1)
-const planeGeometry = new THREE.PlaneGeometry(1.6, 1.6, 12,12)
+const planeGeometry = new THREE.PlaneGeometry(2.0, 2.0, 12,12)
 
 
 
@@ -30,30 +30,18 @@ const wallMaterial = new THREE.MeshStandardMaterial({ color: '#968D24' })
 
 function Floor({size = 16}) {
     const materialRef = useRef()
-    const { freq } = useControls({
-        freq: { value: 0.005, min: 0.001, max: 0.1, step: 0.001 }
-    })
-    const { strength } = useControls({
-        strength: { value: 0.15, min: 0.0, max: 2.0, step: 0.01 }
-    })
-    const { tile } = useControls({
-        tile: { value: 1.0, min: 0.0, max: 1.0, step: 0.01 }
-    })
-    const { scale } = useControls({
-        scale: { value: 2500.0, min: 0.0, max: 5000.0, step: 0.01 }
-    })
-    const { threshold } = useControls({
-        threshold: { value: 0.01, min: 0.0, max: 1.0, step: 0.01 }
-    })
+
+    const floorValues = {
+        freq: 0.005,
+        strength: 0.15,
+        tile: 1.0,
+        scale: 2500.0,
+        threshold: 0.01
+    }
 
     useFrame((state) => {
         if (materialRef.current) {
             materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
-            materialRef.current.uniforms.strength.value = strength
-            materialRef.current.uniforms.freq.value = freq
-            materialRef.current.uniforms.tile.value = tile
-            materialRef.current.uniforms.scale.value = scale
-            materialRef.current.uniforms.threshold.value = threshold
         }
     })
 
@@ -69,11 +57,11 @@ function Floor({size = 16}) {
             fragmentShader={carpetFragmentShader} 
             uniforms={{
                 uTime: { value: 0 },
-                freq: { value: freq },
-                strength: { value: strength },
-                tile: { value: tile },
-                scale: { value: scale },
-                threshold: { value: threshold },
+                freq: { value: floorValues.freq },
+                strength: { value: floorValues.strength },
+                tile: { value: floorValues.tile },
+                scale: { value: floorValues.scale },
+                threshold: { value: floorValues.threshold },
                 }}
             flatShading
             color={'#F2E1AF'}
@@ -103,7 +91,6 @@ function Ceiling({size = 16}) {
                 fragmentShader={ceilingFragmentShader} 
                 uniforms={{
                     uTime: { value: 0 },
-                    // aspectRatio: { value: size / 2.5 },
                     }}
                     // Base material properties
                 color={'#BEA049'}
@@ -115,14 +102,10 @@ function Ceiling({size = 16}) {
 function Bounds({ length = 8}) {
 
     const materialRef = useRef()
-    const { offset } = useControls({
-        offset: { value: 0.2125, min: 0.0, max: 1.0, step: 0.001 }
-    })
 
     useFrame((state) => {
         if (materialRef.current) {
             materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
-            materialRef.current.uniforms.offset.value = offset
         }
     })
 
@@ -153,7 +136,7 @@ function Bounds({ length = 8}) {
                             uTime: { value: 0 },
                             aspectRatio: { value: length * 2 / 2.5 },
 
-                            offset: { value: offset },
+                            offset: { value: 0.2125 },
                         }}
                         // Base material properties
                         flatShading
@@ -175,7 +158,7 @@ function Bounds({ length = 8}) {
                     uniforms={{
                         uTime: { value: 0 },
                         aspectRatio: { value: length / 2.5 },
-                        offset: { value: offset },
+                        offset: { value: 0.2125 },
                     }}
                     // Base material properties
                     flatShading
@@ -201,12 +184,37 @@ function Bounds({ length = 8}) {
 
 }
 
-export default function Corridor() {
+function Linkspot({position = [0, 0, 0]}) {
+    const materialRef = useRef()
 
+    useFrame((state) => {
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
+        }
+    })
+    return <mesh geometry = {planeGeometry}
+        position={ position }
+        rotation={ [-Math.PI / 2, 0, 0] }
+    >
+        <CustomShaderMaterial
+            ref={materialRef}   
+            baseMaterial={THREE.MeshPhysicalMaterial}
+            vertexShader={linkspotVertexShader} 
+            fragmentShader={linkspotFragmentShader} 
+            uniforms={{
+                uTime: { value: 0 },
+                }}
+            color={'#000000'}
+            transparent
+            />
+    </mesh>
+}
+
+export default function Corridor() {
 
     return <>
         <Floor size={ 16 }/>
-        {/* <Ceiling size={ 16 }/> */}
+        <Ceiling size={ 16 }/>
 
         {/* BASE */}
 
@@ -226,19 +234,8 @@ export default function Corridor() {
         <WallHorizontal position={[-7.42, 0.75, -0.872]  } length = {5.45}/>
 
         {/* link spot plane*/}
-        <mesh geometry = {planeGeometry}
-            position={ [-7.2, 0.76, -4.0] }
-            rotation={ [-Math.PI / 2, 0, 0] }
-        >
-            <meshStandardMaterial color={'red'}/>
-        </mesh>
-
-         <mesh geometry = {planeGeometry}
-            position={ [12.0, 0.76, -26.5] }
-            rotation={ [-Math.PI / 2, 0, 0] }
-        >
-            <meshStandardMaterial color={'red'}/>
-        </mesh>
+        <Linkspot position={ [-7.2, -0.35, -4.0] }/>
+        <Linkspot position={ [12.0, -0.35, -26.5] }/>
 
         <Bounds length={ 16} />
     </>
